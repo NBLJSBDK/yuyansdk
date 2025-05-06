@@ -312,10 +312,10 @@ class KeyboardLoaderUtil private constructor() {
             }
             0x4000 -> {
                 createQwertyKeys(arrayOf(InputModeSwitcherManager.USER_DEF_KEYCODE_SYMBOL_3, InputModeSwitcherManager.USER_DEF_KEYCODE_NUMBER_5,
-                    InputModeSwitcherManager.USER_DEF_KEYCODE_LEFT_PERIOD_14, KeyEvent.KEYCODE_SPACE, InputModeSwitcherManager.USER_DEF_KEYCODE_LANG_2))
+                    InputModeSwitcherManager.USER_DEF_KEYCODE_LEFT_COMMA_13, KeyEvent.KEYCODE_SPACE, InputModeSwitcherManager.USER_DEF_KEYCODE_LEFT_PERIOD_14,InputModeSwitcherManager.USER_DEF_KEYCODE_LANG_2))
             }
             0x5000 -> {
-                createT9NumberKeys(arrayOf(InputModeSwitcherManager.USER_DEF_KEYCODE_SYMBOL_3, InputModeSwitcherManager.USER_DEF_KEYCODE_RETURN_6, 7, KeyEvent.KEYCODE_SPACE))
+                createT9NumberKeys(arrayOf(InputModeSwitcherManager.USER_DEF_KEYCODE_SYMBOL_3, InputModeSwitcherManager.USER_DEF_KEYCODE_RETURN_6, KeyEvent.KEYCODE_SPACE, 7))
             }
             0x6000 -> {
                 createLX17Keys(arrayOf(InputModeSwitcherManager.USER_DEF_KEYCODE_SYMBOL_3, InputModeSwitcherManager.USER_DEF_KEYCODE_NUMBER_5,
@@ -331,9 +331,14 @@ class KeyboardLoaderUtil private constructor() {
             t9Keys[0].widthF = 0.147f;t9Keys[1].widthF = 0.099f
             t9Keys[2].widthF = 0.099f;t9Keys[3].widthF = 0.396f
             t9Keys[4].widthF = 0.099f
-        } else{
-            t9Keys[0].widthF = 0.18f;t9Keys[1].widthF = 0.147f
-            t9Keys[2].widthF = 0.336f;t9Keys[3].widthF = 0.147f
+        }else if (t9Keys.size == 6) {
+            softKeyToggle.widthF = 0.147f
+            t9Keys[0].widthF = 0.147f;t9Keys[1].widthF = 0.099f
+            t9Keys[2].widthF = 0.099f;t9Keys[3].widthF = 0.297f
+            t9Keys[4].widthF = 0.099f;t9Keys[5].widthF = 0.099f
+        }else {
+            t9Keys[0].widthF = 0.18f;t9Keys[1].widthF = 0.21f
+            t9Keys[2].widthF = 0.21f;t9Keys[3].widthF = 0.21f
         }
         keyBeans.addAll(t9Keys)
         keyBeans.add(softKeyToggle)

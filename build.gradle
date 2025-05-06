@@ -97,6 +97,9 @@ android {
         sourceCompatibility 17
         targetCompatibility 17
     }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
     namespace 'com.yuyan.imemodule'
 }
 

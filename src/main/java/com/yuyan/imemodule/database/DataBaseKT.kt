@@ -70,11 +70,11 @@ abstract class DataBaseKT : RoomDatabase() {
             })
             .build()
         private fun initDb() {  //初始化数据库数据
-            val symbolPinyin = listOf("，", "。", "？", "！", "……", "：", "；", ".").map {  symbolKey->
+            val symbolPinyin = listOf("，", "…", "？", "；", "。", "~", ".", "@", "！", "：", "-").map {  symbolKey->
                 SideSymbol(symbolKey, symbolKey)
             }
             instance.sideSymbolDao().insertAll(symbolPinyin)
-            val symbolNumber = listOf("%", "/", "-", "+", "*", "#", "@").map {  symbolKey->
+            val symbolNumber = listOf(":", "*", "+", "-", "%", "/", "#", "_").map {  symbolKey->
                 SideSymbol(symbolKey, symbolKey, "number")
             }
             instance.sideSymbolDao().insertAll(symbolNumber)
