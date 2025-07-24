@@ -7,7 +7,7 @@ import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.ViewOutlineProvider
 import com.yuyan.imemodule.R
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.data.theme.ThemeManager
 import com.yuyan.imemodule.prefs.behavior.PopupMenuMode
 import com.yuyan.imemodule.singleton.EnvironmentSingleton
@@ -26,7 +26,7 @@ import splitties.views.gravityStart
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
-class PopupKeyboardMenuUi(bounds: Rect, onDismissSelf: PopupContainerUi.() -> Unit = {}, private val radius: Float, private val keyWidth: Int, private var isSelect: Boolean, private var popupMenuPair: Pair<PopupMenuMode, String>) : PopupContainerUi(ImeSdkApplication.context, bounds, onDismissSelf) {
+class PopupKeyboardMenuUi(bounds: Rect, onDismissSelf: PopupContainerUi.() -> Unit = {}, private val radius: Float, private val keyWidth: Int, private var isSelect: Boolean, private var popupMenuPair: Pair<PopupMenuMode, String>) : PopupContainerUi(Launcher.instance.context, bounds, onDismissSelf) {
 
     class PopupKeyUi(override val ctx: Context, val text: String) : Ui {
         val textView = view(::AutoScaleTextView) {

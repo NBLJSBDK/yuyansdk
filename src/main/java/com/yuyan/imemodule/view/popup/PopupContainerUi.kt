@@ -1,13 +1,12 @@
-
 package com.yuyan.imemodule.view.popup
 
 import android.content.Context
 import android.graphics.Rect
 import android.view.View
-import com.yuyan.imemodule.data.theme.Theme
 import com.yuyan.imemodule.prefs.behavior.PopupMenuMode
 import com.yuyan.imemodule.singleton.EnvironmentSingleton
 import splitties.views.dsl.core.Ui
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 abstract class PopupContainerUi(override val ctx: Context, val bounds: Rect, val onDismissSelf: PopupContainerUi.() -> Unit) : Ui {
@@ -29,7 +28,7 @@ abstract class PopupContainerUi(override val ctx: Context, val bounds: Rect, val
 
     fun calcInitialFocusedColumn(columnCount: Int, columnWidth: Int, bounds: Rect): Int {
         val leftSpace = bounds.left
-        val rightSpace = EnvironmentSingleton.instance.skbWidth - bounds.right
+        val rightSpace = max(EnvironmentSingleton.instance.skbWidth - bounds.right, 0)
         var col = (columnCount - 1) / 2
         while (columnWidth * col > leftSpace) col--
         while (columnWidth * (columnCount - col - 1) > rightSpace) col++

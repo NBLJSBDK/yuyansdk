@@ -2,9 +2,6 @@ package com.yuyan.imemodule.libs.recyclerview.touch;
 
 import androidx.recyclerview.widget.ItemTouchHelper;
 
-/**
- * Created by Yolanda on 2016/4/19.
- */
 public class DefaultItemTouchHelper extends ItemTouchHelper {
 
     private final ItemTouchHelperCallback mItemTouchHelperCallback;

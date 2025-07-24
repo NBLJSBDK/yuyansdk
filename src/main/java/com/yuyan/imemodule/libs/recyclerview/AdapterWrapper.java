@@ -13,9 +13,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import com.yuyan.imemodule.R;
 
-/**
- * Created by YanZhenjie on 2017/7/20.
- */
 class AdapterWrapper extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final int BASE_ITEM_TYPE_FOOTER = 200000;
 

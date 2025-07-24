@@ -16,4 +16,10 @@ interface ClipboardDao : BaseDao<Clipboard> {
 
     @Query("delete from clipboard")
     fun deleteAll()
+
+    @Query("SELECT COUNT(*) FROM clipboard")
+    fun getCount(): Int
+
+    @Query("DELETE FROM clipboard WHERE content IN ( SELECT content FROM clipboard ORDER BY time ASC LIMIT :overflow)")
+    fun deleteOldest(overflow: Int)
 }

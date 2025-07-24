@@ -13,7 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.PreferenceScreen
 import com.yuyan.imemodule.R
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.manager.UserDataManager
 import com.yuyan.imemodule.prefs.AppPrefs
 import com.yuyan.imemodule.ui.activity.LauncherActivity
@@ -31,8 +31,8 @@ import kotlinx.coroutines.NonCancellable
 private val imeHideIcon = AppPrefs.getInstance().other.imeHideIcon
 
 private val switchKeyListener = ManagedPreference.OnChangeListener<Boolean> { _, value ->
-    val componentName = ComponentName(ImeSdkApplication.context.packageName, LauncherActivity::class.java.name)
-    ImeSdkApplication.context.packageManager.setComponentEnabledSetting(componentName, if(value) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+    val componentName = ComponentName(Launcher.instance.context.packageName, LauncherActivity::class.java.name)
+    Launcher.instance.context.packageManager.setComponentEnabledSetting(componentName, if(value) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
 }
 
 class OtherSettingsFragment: ManagedPreferenceFragment(AppPrefs.getInstance().other){

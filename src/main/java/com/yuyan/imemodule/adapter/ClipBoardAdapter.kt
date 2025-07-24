@@ -19,9 +19,8 @@ import com.yuyan.imemodule.data.theme.ThemeManager.activeTheme
 import com.yuyan.imemodule.database.entry.Clipboard
 import com.yuyan.imemodule.prefs.AppPrefs
 import com.yuyan.imemodule.prefs.behavior.ClipboardLayoutMode
-import com.yuyan.imemodule.singleton.EnvironmentSingleton
+import com.yuyan.imemodule.singleton.EnvironmentSingleton.Companion.instance
 import com.yuyan.imemodule.utils.DevicesUtils.dip2px
-import com.yuyan.imemodule.utils.DevicesUtils.px2dip
 import splitties.views.dsl.core.margin
 
 /**
@@ -29,13 +28,12 @@ import splitties.views.dsl.core.margin
  */
 class ClipBoardAdapter(context: Context, datas: MutableList<Clipboard>) :
     RecyclerView.Adapter<ClipBoardAdapter.SymbolHolder>() {
-    private var mDatas : MutableList<Clipboard>
+    private var mDatas : MutableList<Clipboard> = datas
     private val mContext: Context
     private var textColor: Int
     private var clipboardLayoutCompact: ClipboardLayoutMode
 
     init {
-        mDatas = datas
         val theme = activeTheme
         textColor = theme.keyTextColor
         mContext = context
@@ -99,12 +97,11 @@ class ClipBoardAdapter(context: Context, datas: MutableList<Clipboard>) :
     }
 
     inner class SymbolHolder(view: RelativeLayout) : RecyclerView.ViewHolder(view) {
-        var textView: TextView
+        var textView: TextView = view.findViewById(R.id.clipboard_adapter_content)
         var ivTopTips: ImageView
         init {
-            textView = view.findViewById(R.id.clipboard_adapter_content)
             textView.setTextColor(textColor)
-            textView.textSize = px2dip(EnvironmentSingleton.instance.candidateTextSize)
+            textView.textSize = instance.candidateTextSize
             ivTopTips = view.findViewById(R.id.clipboard_adapter_top_tips)
         }
     }

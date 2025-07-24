@@ -13,6 +13,7 @@ import com.yuyan.imemodule.utils.KeyboardLoaderUtil
 import com.yuyan.imemodule.keyboard.InputView
 import com.yuyan.imemodule.keyboard.KeyboardManager
 import com.yuyan.imemodule.view.preference.ManagedPreference
+import splitties.dimensions.dp
 import splitties.views.bottomPadding
 import splitties.views.rightPadding
 import kotlin.math.abs
@@ -77,12 +78,14 @@ open class BaseContainer(@JvmField var mContext: Context, inputView: InputView) 
     }
 
     private val lastY = floatArrayOf(0f)
+    var isHandling = false
     private fun onModifyKeyboardHeightEvent(v12: View, event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> lastY[0] = event.y
             MotionEvent.ACTION_MOVE -> {
                 val y = event.y
-                if (abs((y - lastY[0]).toDouble()) > 20) {
+                if (!isHandling && abs((y - lastY[0]).toDouble()) > dp(10)) {
+                    isHandling = true
                     var rat = EnvironmentSingleton.instance.keyBoardHeightRatio
                     if (y < lastY[0]) { // 手指向上移动
                         rat += 0.01f
@@ -100,6 +103,7 @@ open class BaseContainer(@JvmField var mContext: Context, inputView: InputView) 
                         EnvironmentSingleton.instance.skbHeight
                     )
                     rootView.setLayoutParams(l)
+                    isHandling = false
                 }
             }
             MotionEvent.ACTION_UP -> v12.performClick()

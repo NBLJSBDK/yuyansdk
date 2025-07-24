@@ -16,9 +16,6 @@ import java.util.List;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-/**
- * Created by Yan Zhenjie on 2016/7/26.
- */
 public class SwipeMenuView extends LinearLayout implements View.OnClickListener {
 
     private RecyclerView.ViewHolder mViewHolder;

@@ -14,6 +14,10 @@ object Kernel {
         nativeUpdateImeOption()
     }
 
+    fun getCurrentRimeSchema(): String {
+        return RimeEngine.getCurrentRimeSchema()
+    }
+
     // 传入一个键码
     fun inputKeyCode(event: KeyEvent) {
         RimeEngine.onNormalKey(event)

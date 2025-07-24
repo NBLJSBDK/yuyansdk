@@ -4,9 +4,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.OverScroller;
 
-/**
- * Created by Yan Zhenjie on 2016/7/22.
- */
 abstract class Horizontal {
 
     private int direction;

@@ -6,7 +6,7 @@ import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.ViewOutlineProvider
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.data.theme.Theme
 import com.yuyan.imemodule.data.theme.ThemeManager
 import com.yuyan.imemodule.prefs.behavior.PopupMenuMode
@@ -40,7 +40,7 @@ import kotlin.math.roundToInt
  * trigger view to popup keyboard view. See [offsetX] and [offsetY].
  * @param keys character to commit when triggered
  */
-class PopupKeyboardUi(bounds: Rect, onDismissSelf: PopupContainerUi.() -> Unit = {}, private val radius: Float, private val keyWidth: Int, private val keys: Array<String>) : PopupContainerUi(ImeSdkApplication.context, bounds, onDismissSelf) {
+class PopupKeyboardUi(bounds: Rect, onDismissSelf: PopupContainerUi.() -> Unit = {}, private val radius: Float, private val keyWidth: Int, private val keys: Array<String>) : PopupContainerUi(Launcher.instance.context, bounds, onDismissSelf) {
 
     class PopupKeyUi(override val ctx: Context, val theme: Theme, val text: String) : Ui {
 

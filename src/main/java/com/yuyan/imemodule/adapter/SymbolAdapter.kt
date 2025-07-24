@@ -17,7 +17,7 @@ import com.yuyan.imemodule.prefs.AppPrefs
 import com.yuyan.imemodule.prefs.behavior.HalfWidthSymbolsMode
 import com.yuyan.imemodule.prefs.behavior.SymbolMode
 import com.yuyan.imemodule.singleton.EnvironmentSingleton
-import com.yuyan.imemodule.utils.DevicesUtils
+import com.yuyan.imemodule.singleton.EnvironmentSingleton.Companion.instance
 import com.yuyan.imemodule.utils.StringUtils
 
 /**
@@ -57,13 +57,12 @@ class SymbolAdapter(context: Context?, val viewType: SymbolMode, private val pag
     }
 
     inner class SymbolHolder(view: View) : RecyclerView.ViewHolder(view) {
-        var textView: EmojiTextView
+        var textView: EmojiTextView = view.findViewById(R.id.gv_symbols_item)
         var tVSdb: TextView
         init {
-            textView = view.findViewById(R.id.gv_item)
             textView.setTextColor(activeTheme.keyTextColor)
-            textView.textSize = DevicesUtils.px2dip(EnvironmentSingleton.instance.candidateTextSize) * 0.7f
-            tVSdb = view.findViewById(R.id.tv_Sdb)
+            textView.textSize = instance.candidateTextSize * if(viewType != SymbolMode.Emojicon)1f else 0.9f
+            tVSdb = view.findViewById(R.id.tv_sdb_symbols_item)
             tVSdb.setTextColor(activeTheme.keyTextColor)
             if(viewType == SymbolMode.Emojicon && pagerIndex == 1 && YuyanEmojiCompat.isWeChatInput){
                 (view.layoutParams as FlexboxLayoutManager.LayoutParams) .apply {

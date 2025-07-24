@@ -29,12 +29,12 @@ import com.yuyan.imemodule.prefs.behavior.KeyboardOneHandedMod
 import com.yuyan.imemodule.prefs.behavior.SkbMenuMode
 import com.yuyan.imemodule.service.DecodingInfo
 import com.yuyan.imemodule.singleton.EnvironmentSingleton.Companion.instance
-import com.yuyan.imemodule.utils.DevicesUtils
 import com.yuyan.imemodule.keyboard.KeyboardManager
 import com.yuyan.imemodule.keyboard.container.CandidatesContainer
 import com.yuyan.imemodule.keyboard.container.ClipBoardContainer
 import com.yuyan.imemodule.keyboard.container.InputBaseContainer
 import com.yuyan.imemodule.manager.layout.CustomLinearLayoutManager
+import com.yuyan.imemodule.prefs.behavior.SkbStyleMode
 import splitties.dimensions.dp
 
 /**
@@ -47,6 +47,7 @@ class CandidatesBar(context: Context?, attrs: AttributeSet?) : RelativeLayout(co
     private lateinit var mMenuRightArrowBtn: ImageView
     private lateinit var mCandidatesDataContainer: LinearLayout //候选词视图
     private lateinit var mCandidatesMenuContainer: LinearLayout //控制菜单视图
+    private lateinit var mComposingView: TextView // 组成字符串的View，用于显示输入的拼音。
     private lateinit var mRVCandidates: RecyclerView    //候选词列表
     private lateinit var mIvMenuSetting: ImageView
     private lateinit var mLlContainer: LinearLayout
@@ -54,87 +55,94 @@ class CandidatesBar(context: Context?, attrs: AttributeSet?) : RelativeLayout(co
     private lateinit var mCandidatesAdapter: CandidatesBarAdapter
     private lateinit var mRVContainerMenu:RecyclerView   // 候选词栏菜单
     private lateinit var mCandidatesMenuAdapter: CandidatesMenuAdapter
-    private var mMenuHeight: Int = 0
-    private var mMenuPadding: Int = 0
-    private var mLastMenuHeight: Int = 0
+    private lateinit var candidatesData: LinearLayout //候选词视图
     private var activeCandNo:Int = 0
 
     fun initialize(cvListener: CandidateViewListener) {
         mCvListener = cvListener
-        mMenuHeight = (instance.heightForCandidates * 0.8f).toInt()
-        mMenuPadding = (instance.heightForCandidates * 0.3f).toInt()
         initMenuView()
         initCandidateView()
     }
 
     // 初始化候选词界面
     private fun initCandidateView() {
-        if(!::mCandidatesDataContainer.isInitialized || mLastMenuHeight != mMenuHeight) {
+        if(!::mCandidatesDataContainer.isInitialized) {
             mCandidatesDataContainer = LinearLayout(context).apply {
-                gravity = Gravity.CENTER_VERTICAL
+                orientation = LinearLayout.VERTICAL
                 visibility = GONE
-                layoutParams = LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            }
+            mComposingView = TextView(context).apply {
+                includeFontPadding = false
+                setPadding(dp(10), 0, dp(10), 0)
+            }
+            candidatesData = LinearLayout(context).apply {
+                gravity = Gravity.CENTER_VERTICAL
             }
             mRightArrowBtn = ImageView(context).apply {
                 isClickable = true
                 isEnabled = true
-                setPadding(mMenuPadding,0, mMenuPadding,0)
                 setImageResource(R.drawable.sdk_level_list_candidates_display)
-                layoutParams = LinearLayout.LayoutParams(instance.heightForCandidates, ViewGroup.LayoutParams.MATCH_PARENT, 0f)
             }
-            mRightArrowBtn.setOnClickListener { view: View ->
-                when (val level = (view as ImageView).drawable.level) {
-                    2 -> mCvListener.onClickClearCandidate()
-                    else -> {
-                        mCvListener.onClickMore(level)
-                        view.drawable.setLevel(1 - level)
-                    }
-                }
+            mRVCandidates = RecyclerView(context).apply {
+                setItemAnimator(null)
+                layoutParams = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f)
+                layoutManager =
+                    CustomLinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             }
-            mRVCandidates = RecyclerView(context)
-            mRVCandidates.setItemAnimator(null)
-            mRVCandidates.layoutManager =  CustomLinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-            mRVCandidates.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
             mCandidatesAdapter = CandidatesBarAdapter(context)
             mCandidatesAdapter.setOnItemClickLitener { _: RecyclerView.Adapter<*>?, _: View?, position: Int ->
                 mCvListener.onClickChoice(position)
             }
             mRVCandidates.setAdapter(mCandidatesAdapter)
-            mRVCandidates.addOnScrollListener(object : OnScrollListener(){
+            mRVCandidates.addOnScrollListener(object : OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                         val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-                        val lastVisibleItemPosition = layoutManager.findLastVisibleItemPosition()
-                        DecodingInfo.activeCandidateBar = lastVisibleItemPosition
+                        DecodingInfo.activeCandidateBar =
+                            layoutManager.findLastVisibleItemPosition()
                         val itemCount = recyclerView.adapter?.itemCount
-                        if (KeyboardManager.instance.currentContainer !is CandidatesContainer && itemCount != null && lastVisibleItemPosition >= itemCount - 1) {
+                        if (KeyboardManager.instance.currentContainer !is CandidatesContainer && itemCount != null && DecodingInfo.activeCandidateBar >= itemCount - 1) {
                             DecodingInfo.nextPageCandidates
                         }
                     }
                 }
-
-
             })
-            this.addView(mCandidatesDataContainer)
-            mLastMenuHeight = mMenuHeight
+            mCandidatesDataContainer.addView(mComposingView)
+            mCandidatesDataContainer.addView(candidatesData)
+            this.addView(mCandidatesDataContainer, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         } else {
             (mRightArrowBtn.parent as ViewGroup).removeView(mRightArrowBtn)
             (mRVCandidates.parent as ViewGroup).removeView(mRVCandidates)
         }
+        var candidatesHeight = instance.heightForCandidates
+        mComposingView.layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, instance.heightForcomposing)
+        mRightArrowBtn.layoutParams = LinearLayout.LayoutParams(candidatesHeight, candidatesHeight, 0f).apply { marginEnd = dp(10) }
+        candidatesData.layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, candidatesHeight)
+        mRightArrowBtn.setOnClickListener { view: View ->
+            when (val level = (view as ImageView).drawable.level) {
+                2 -> mCvListener.onClickClearCandidate()
+                else -> {
+                    mCvListener.onClickMore(level)
+                    view.drawable.setLevel(1 - level)
+                }
+            }
+        }
         val oneHandedModSwitch = AppPrefs.getInstance().keyboardSetting.oneHandedModSwitch.getValue()
         val oneHandedMod = AppPrefs.getInstance().keyboardSetting.oneHandedMod.getValue()
         if (oneHandedModSwitch && oneHandedMod == KeyboardOneHandedMod.LEFT) {
-            mCandidatesDataContainer.addView(mRightArrowBtn)
-            mCandidatesDataContainer.addView(mRVCandidates)
+            candidatesData.addView(mRightArrowBtn)
+            candidatesData.addView(mRVCandidates, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, candidatesHeight, 1f))
         } else {
-            mCandidatesDataContainer.addView(mRVCandidates)
-            mCandidatesDataContainer.addView(mRightArrowBtn)
+            candidatesData.addView(mRVCandidates, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, candidatesHeight, 1f))
+            candidatesData.addView(mRightArrowBtn)
         }
+        mComposingView.textSize = instance.composingTextSize
+        mCandidatesAdapter.notifyChanged()
     }
 
     //初始化标题栏
     fun initMenuView() {
-        if(!::mCandidatesMenuContainer.isInitialized || mLastMenuHeight != mMenuHeight) {
+        if(!::mCandidatesMenuContainer.isInitialized) {
             this.removeAllViews()
             mCandidatesMenuContainer = LinearLayout(context).apply {
                 gravity = Gravity.CENTER_VERTICAL
@@ -143,37 +151,36 @@ class CandidatesBar(context: Context?, attrs: AttributeSet?) : RelativeLayout(co
                 setImageResource(R.drawable.sdk_level_candidates_menu_left)
                 isClickable = true
                 isEnabled = true
-                setPadding(mMenuPadding, 0,mMenuPadding/2,0)
-                setOnClickListener{mCvListener.onClickMenu(SkbMenuMode.SettingsMenu)}
+                setOnClickListener { mCvListener.onClickMenu(SkbMenuMode.SettingsMenu) }
             }
             mLlContainer = LinearLayout(context).apply {
                 gravity = Gravity.CENTER_VERTICAL
             }
             mFlowerType = TextView(context).apply {
-                textSize = DevicesUtils.px2dip(instance.candidateTextSize)
                 setTextColor(ThemeManager.activeTheme.keyTextColor)
-                val paddingValue = dp(5)
-                setPadding(paddingValue, paddingValue, paddingValue, paddingValue)
+                setPadding(dp(10), 0, 0, 0)
             }
             val flowerTypefaces = arrayOf(FlowerTypefaceMode.Mars, FlowerTypefaceMode.FlowerVine, FlowerTypefaceMode.Messy, FlowerTypefaceMode.Germinate,
                 FlowerTypefaceMode.Fog,FlowerTypefaceMode.ProhibitAccess, FlowerTypefaceMode.Grass, FlowerTypefaceMode.Wind, FlowerTypefaceMode.Disabled)
             val flowerTypefacesName = resources.getStringArray(R.array.FlowerTypeface)
-            if(CustomConstant.flowerTypeface == FlowerTypefaceMode.Disabled) {
+            if (CustomConstant.flowerTypeface == FlowerTypefaceMode.Disabled) {
                 mLlContainer.visibility = GONE
             } else {
-                mFlowerType.text = flowerTypefacesName[flowerTypefaces.indexOf(CustomConstant.flowerTypeface)]
+                mFlowerType.text =
+                    flowerTypefacesName[flowerTypefaces.indexOf(CustomConstant.flowerTypeface)]
             }
-            mFlowerType.setOnClickListener{ _: View ->
+            mFlowerType.setOnClickListener { _: View ->
                 val popupMenu = PopupMenu(context, mLlContainer).apply {
                     menuInflater.inflate(R.menu.flower_typeface_menu, menu)
                     setOnMenuItemClickListener { menuItem ->
-                        val ids = listOf(R.id.flower_type_mars, R.id.flower_type_flowervine , R.id.flower_type_messy, R.id.flower_type_grminate, R.id.flower_type_fog,
-                            R.id.flower_type_prohibitaccess, R.id.flower_type_grass, R.id.flower_type_wind, R.id.flower_type_disabled)
-                        val position =  ids.indexOf(menuItem.itemId)
-                        val select =  flowerTypefaces[position]
+                        val ids = listOf(R.id.flower_type_mars, R.id.flower_type_flowervine, R.id.flower_type_messy, R.id.flower_type_grminate,
+                            R.id.flower_type_fog, R.id.flower_type_prohibitaccess, R.id.flower_type_grass, R.id.flower_type_wind, R.id.flower_type_disabled
+                        )
+                        val position = ids.indexOf(menuItem.itemId)
+                        val select = flowerTypefaces[position]
                         mFlowerType.text = flowerTypefacesName[position]
                         CustomConstant.flowerTypeface = select
-                        if(select == FlowerTypefaceMode.Disabled){
+                        if (select == FlowerTypefaceMode.Disabled) {
                             mLlContainer.visibility = GONE
                         }
                         mCandidatesMenuAdapter.notifyChanged()// 刷新菜单栏
@@ -184,31 +191,38 @@ class CandidatesBar(context: Context?, attrs: AttributeSet?) : RelativeLayout(co
             }
             mLlContainer.addView(mFlowerType, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             mRVContainerMenu = RecyclerView(context).apply {
-                layoutManager =  CustomLinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, true)
+                setItemAnimator(null)
+                layoutManager = CustomLinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, true)
             }
-            mRVContainerMenu.setItemAnimator(null)
             mCandidatesMenuAdapter = CandidatesMenuAdapter(context)
             mCandidatesMenuAdapter.setOnItemClickLitener { _: RecyclerView.Adapter<*>?, view: View?, position: Int ->
                 val skbMenuMode = mCandidatesMenuAdapter.getMenuMode(position)
-                if(skbMenuMode != null) onClickMenu(skbMenuMode, view)
+                if (skbMenuMode != null) onClickMenu(skbMenuMode, view)
             }
             mRVContainerMenu.setAdapter(mCandidatesMenuAdapter)
             mMenuRightArrowBtn = ImageView(context).apply {
                 isClickable = true
                 isEnabled = true
-                setPadding(mMenuPadding,0, mMenuPadding,0)
                 setImageResource(R.drawable.ic_menu_arrow_down)
-                layoutParams = LinearLayout.LayoutParams(instance.heightForCandidates, ViewGroup.LayoutParams.MATCH_PARENT, 0f)
             }
             mMenuRightArrowBtn.setOnClickListener { _: View ->
                 mCvListener.onClickMenu(SkbMenuMode.CloseSKB)
             }
-            mCandidatesMenuContainer.addView(mIvMenuSetting, LinearLayout.LayoutParams(instance.heightForCandidates, instance.heightForCandidates, 0f))
-            mCandidatesMenuContainer.addView(mLlContainer, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, instance.heightForCandidates,0f))
-            mCandidatesMenuContainer.addView(mRVContainerMenu, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, mMenuHeight, 1f))
-            mCandidatesMenuContainer.addView(mMenuRightArrowBtn, LinearLayout.LayoutParams(instance.heightForCandidates, instance.heightForCandidates, 0f))
-            this.addView(mCandidatesMenuContainer, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            mCandidatesMenuContainer.addView(mIvMenuSetting)
+            mCandidatesMenuContainer.addView(mLlContainer)
+            mCandidatesMenuContainer.addView(mRVContainerMenu)
+            mCandidatesMenuContainer.addView(mMenuRightArrowBtn)
+            this.addView(
+                mCandidatesMenuContainer,
+                LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            )
         }
+        var menuHeight = (instance.heightForCandidatesArea * 0.8).toInt()
+        mFlowerType.textSize = instance.candidateTextSize
+        mIvMenuSetting.layoutParams = LinearLayout.LayoutParams(menuHeight, menuHeight, 0f).apply { marginStart = dp(10) }
+        mMenuRightArrowBtn.layoutParams = LinearLayout.LayoutParams(menuHeight, menuHeight, 0f).apply { marginEnd = dp(10) }
+        mLlContainer.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, menuHeight,0f)
+        mRVContainerMenu.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, menuHeight, 1f)
         mCandidatesMenuAdapter.notifyChanged()  // 点击下拉菜单后，需要刷新菜单栏
     }
 
@@ -235,6 +249,7 @@ class CandidatesBar(context: Context?, attrs: AttributeSet?) : RelativeLayout(co
      * 显示候选词
      */
     fun showCandidates() {
+        mComposingView.text = DecodingInfo.composingStrForDisplay
         val container = KeyboardManager.instance.currentContainer
         mIvMenuSetting.drawable.setLevel( if(container is InputBaseContainer) 0 else 1)
         if (container is ClipBoardContainer) {
@@ -327,7 +342,7 @@ class CandidatesBar(context: Context?, attrs: AttributeSet?) : RelativeLayout(co
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val heightMeasure = MeasureSpec.makeMeasureSpec(instance.heightForCandidates, MeasureSpec.EXACTLY)
+        val heightMeasure = MeasureSpec.makeMeasureSpec(instance.heightForCandidatesArea, MeasureSpec.EXACTLY)
         val widthMeasure = MeasureSpec.makeMeasureSpec(instance.skbWidth, MeasureSpec.EXACTLY)
         super.onMeasure(widthMeasure, heightMeasure)
     }
@@ -344,6 +359,10 @@ class CandidatesBar(context: Context?, attrs: AttributeSet?) : RelativeLayout(co
 
     // 刷新主题
     fun updateTheme(textColor: Int) {
+        initMenuView()
+        initCandidateView()
+        mIvMenuSetting.setImageResource(R.drawable.sdk_level_candidates_menu_left)
+        mComposingView.setTextColor(textColor)
         mRightArrowBtn.drawable.setTint(textColor)
         mMenuRightArrowBtn.drawable.setTint(textColor)
         mIvMenuSetting.drawable.setTint(textColor)

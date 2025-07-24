@@ -8,9 +8,6 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.StringRes;
 import androidx.core.content.ContextCompat;
 
-/**
- * Created by Yan Zhenjie on 2016/7/26.
- */
 public class SwipeMenuItem {
 
     private Context mContext;

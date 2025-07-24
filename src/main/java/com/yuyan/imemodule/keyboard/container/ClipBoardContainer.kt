@@ -13,7 +13,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.yuyan.imemodule.R
 import com.yuyan.imemodule.adapter.ClipBoardAdapter
 import com.yuyan.imemodule.application.CustomConstant
-import com.yuyan.imemodule.data.theme.ThemeManager
 import com.yuyan.imemodule.data.theme.ThemeManager.activeTheme
 import com.yuyan.imemodule.database.DataBaseKT
 import com.yuyan.imemodule.database.entry.Clipboard
@@ -21,16 +20,15 @@ import com.yuyan.imemodule.libs.recyclerview.SwipeMenu
 import com.yuyan.imemodule.libs.recyclerview.SwipeMenuBridge
 import com.yuyan.imemodule.libs.recyclerview.SwipeMenuItem
 import com.yuyan.imemodule.libs.recyclerview.SwipeRecyclerView
-import com.yuyan.imemodule.manager.InputModeSwitcherManager
 import com.yuyan.imemodule.prefs.AppPrefs
 import com.yuyan.imemodule.prefs.behavior.ClipboardLayoutMode
 import com.yuyan.imemodule.prefs.behavior.PopupMenuMode
 import com.yuyan.imemodule.prefs.behavior.SkbMenuMode
 import com.yuyan.imemodule.singleton.EnvironmentSingleton
-import com.yuyan.imemodule.utils.DevicesUtils
 import com.yuyan.imemodule.keyboard.InputView
 import com.yuyan.imemodule.keyboard.KeyboardManager
 import com.yuyan.imemodule.manager.layout.CustomGridLayoutManager
+import com.yuyan.imemodule.singleton.EnvironmentSingleton.Companion.instance
 import splitties.dimensions.dp
 import splitties.views.textResource
 import kotlin.math.ceil
@@ -56,8 +54,8 @@ class ClipBoardContainer(context: Context, inputView: InputView) : BaseContainer
         mTVLable = TextView(context).apply {
             textResource = R.string.clipboard_empty_ltip
             gravity = Gravity.CENTER
-            setTextColor(ThemeManager.activeTheme.keyTextColor)
-            textSize = DevicesUtils.px2dip(EnvironmentSingleton.instance.candidateTextSize)
+            setTextColor(activeTheme.keyTextColor)
+            textSize = instance.candidateTextSize
         }
         mRVSymbolsView.setItemAnimator(null)
         val layoutParams2 = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -95,7 +93,7 @@ class ClipBoardContainer(context: Context, inputView: InputView) : BaseContainer
         if (viewParent != null) {
             (viewParent as ViewGroup).removeView(mTVLable)
         }
-        if(copyContents.size == 0){
+        if(copyContents.isEmpty()){
             this.addView(mTVLable, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         }
         val adapter = ClipBoardAdapter(context, copyContents)

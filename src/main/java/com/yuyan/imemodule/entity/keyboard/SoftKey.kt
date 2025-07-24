@@ -3,27 +3,13 @@ package com.yuyan.imemodule.entity.keyboard
 import android.graphics.drawable.Drawable
 import android.view.KeyEvent
 import com.yuyan.imemodule.keyboard.keyIconRecords
+import com.yuyan.imemodule.manager.InputModeSwitcherManager
 import java.util.Objects
 
 /**
  * 按键的属性
  */
-open class SoftKey {
-
-    /** key的code  */
-    var keyCode = 0
-    /** 按键的属性和类型，最低的8位留给软键盘变换状态。*/
-    var stateId = 0
-
-    /** key的文本  */
-    private var mkeyLabel: String = ""
-
-    /** key角标符号文本  */
-    private var mKeyLabelSmall: String = ""
-
-    /** key助记符号文本  */
-    var keyMnemonic: String? = null
-
+open class SoftKey(var code: Int = 0, var label: String = "", var labelSmall: String = "", var keyMnemonic: String = ""){
 
     /** 键盘上下左右位置百分比 ，mLeft = (int) (mLeftF * skbWidth);  */
     var mLeftF = -1f
@@ -31,29 +17,15 @@ open class SoftKey {
     var widthF = 0f
     var heightF = 0.25f
 
-    /** 键盘上下左右位置坐标边界;  */
+    /** 键盘上下左右位置坐标边界; */
     var mLeft = 0
     var mRight = 0
     var mTop = 0
     var mBottom = 0
 
-    /** 键盘布局点击时设置状态，非初始化设置。 See [com.yuyan.imemodule.keyboard.TextKeyboard] */
+    var stateId = 0
     var pressed = false
-
-    constructor(label: String = "", labelSmall: String = "") {
-        mkeyLabel = label
-        mKeyLabelSmall = labelSmall
-    }
-
-    constructor(code: Int = 0, label: String = "", labelSmall: String = "") {
-        keyCode = code
-        mkeyLabel = label
-        mKeyLabelSmall = labelSmall
-    }
-
-    constructor(code: Int, label: String = "", labelSmall: String = "", keyMnemonic: String = "") : this(code, label, labelSmall) {
-        this.keyMnemonic = keyMnemonic
-    }
+    var keyType = KeyType.Normal
 
     fun onPressed() {
         pressed = true
@@ -74,9 +46,6 @@ open class SoftKey {
 
     /**
      * 设置按键的区域
-     *
-     * @param skbWidth  键盘的宽度
-     * @param skbHeight  键盘的高度
      */
     fun setSkbCoreSize(skbWidth: Int, skbHeight: Int) {
         mLeft = (mLeftF * skbWidth).toInt()
@@ -86,42 +55,36 @@ open class SoftKey {
     }
 
     open val keyIcon: Drawable?
-        get() = keyIconRecords[Objects.hash(keyCode, stateId)]
+        get() = keyIconRecords[Objects.hash(code, stateId)]
 
     open val keyLabel: String
-        get() =  mkeyLabel
+        get() =  label
 
     fun getmKeyLabelSmall(): String {
-        return mKeyLabelSmall
+        return labelSmall
     }
 
     fun getkeyLabel(): String {
-        return mkeyLabel
+        return label
     }
 
-    /**
-     * 大小写转换
-     */
     open fun changeCase(upperCase: Boolean) {
-        mkeyLabel = if (upperCase) mkeyLabel.uppercase() else mkeyLabel.lowercase()
+        label = if (upperCase) label.uppercase() else label.lowercase()
     }
 
-    /** 是否是系统的keycode */
     val isKeyCodeKey: Boolean
-        get() = keyCode > 0
-    /** 是否是用户定义的keycode */
+        get() = code > 0
+
     val isUserDefKey: Boolean
-        get() = keyCode < 0
+        get() = code < 0
 
-    /** 是否是字符按键 */
     val isUniStrKey: Boolean
-        get() = keyCode == 0
+        get() = code == 0
 
-    /**
-     * 是否有重复按下功能，即连长按这个按键是否执行重复的操作。
-     */
     fun repeatable(): Boolean {
-        return keyCode == KeyEvent.KEYCODE_DEL || keyCode in KeyEvent.KEYCODE_DPAD_UP .. KeyEvent.KEYCODE_DPAD_RIGHT
+        return code == KeyEvent.KEYCODE_DEL
+                || code == InputModeSwitcherManager.USER_DEF_KEYCODE_CURSOR_DIRECTION_9
+                || code in KeyEvent.KEYCODE_DPAD_UP .. KeyEvent.KEYCODE_DPAD_RIGHT
     }
 
     fun width(): Int {

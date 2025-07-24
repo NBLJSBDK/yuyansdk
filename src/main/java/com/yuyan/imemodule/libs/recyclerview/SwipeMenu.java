@@ -8,9 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import androidx.annotation.IntDef;
 
-/**
- * Created by Yan Zhenjie on 2016/7/22.
- */
 public class SwipeMenu {
 
     @IntDef({LinearLayout.HORIZONTAL, LinearLayout.VERTICAL})

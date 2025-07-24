@@ -5,21 +5,24 @@ object DoublePinYinUtils {
         'a' to "zh",
         'e' to "ch",
         'v' to "sh",
+        ';' to "ing",
     )
     val double_pinyin_ziguang = mapOf(
         'u' to "zh",
         'a' to "ch",
         'i' to "sh",
+        ';' to "ing",
     )
     val double_pinyin_ls17 = mapOf(
         'z' to "zh",
         'c' to "ch",
-        'h' to "sh",
+        's' to "sh",
     )
     val double_pinyin = mapOf(
         'v' to "zh",
         'i' to "ch",
         'u' to "sh",
+        ';' to "ing",
     )
 
     val doublePinyinMap = mapOf(
@@ -32,10 +35,16 @@ object DoublePinYinUtils {
         val compositionList = composition.filter { it.code <= 0xFF }.split("'".toRegex())
         return buildSpannedString {
             append(composition.filter { it.code > 0xFF })
-            comment.split("'").zip(compositionList).forEach { (pinyin, compo) ->
-                append(if (compo.length >= 2) pinyin else {
-                    doublePinyinMap.getOrElse(rimeSchema){double_pinyin}.getOrElse(compo[0]) { pinyin.first().toString() }
-                })
+            if(comment.isEmpty()){
+                composition.forEach{  char -> append(doublePinyinMap.getOrElse(rimeSchema){double_pinyin}.getOrElse(char) {char.toString()}) }
+            } else comment.split("'").zip(compositionList).forEach { (pinyin, compo) ->
+                if(compo.isEmpty()) ""
+                else if (compo.length == 1) append(doublePinyinMap.getOrElse(rimeSchema){double_pinyin}.getOrElse(compo[0]) { pinyin.first().toString() })
+                else if (compo.length == 2) append(pinyin)
+                else {
+                    append(pinyin)
+                    compo.drop(2).forEach{  char -> append(doublePinyinMap.getOrElse(rimeSchema){double_pinyin}.getOrElse(char) {char.toString()}) }
+                }
                 append("'")
             }
         }

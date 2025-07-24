@@ -23,14 +23,17 @@ import com.yuyan.imemodule.keyboard.KeyboardManager
 import com.yuyan.imemodule.keyboard.container.ClipBoardContainer
 import com.yuyan.imemodule.keyboard.container.SymbolContainer
 import com.yuyan.imemodule.manager.InputModeSwitcherManager
+import com.yuyan.imemodule.singleton.EnvironmentSingleton.Companion.instance
+import splitties.views.padding
 
 /**
  * 候选词界面适配器
  */
 class CandidatesMenuAdapter(context: Context?) : RecyclerView.Adapter<CandidatesMenuAdapter.SymbolHolder>() {
-    private val inflater: LayoutInflater
+    private val inflater: LayoutInflater = LayoutInflater.from(context)
     private var mOnItemClickListener: OnRecyclerItemClickListener? = null
-    private val itemHeight: Int
+    private var itemHeight: Int = (instance.heightForCandidatesArea * 0.8f).toInt()
+    private var mMenuPadding: Int = (instance.heightForCandidatesArea * 0.05f).toInt()
     var items: List<SkbFunItem> = emptyList()
         set(value) {
             val diffResult = DiffUtil.calculateDiff(MyDiffCallback(field, value))
@@ -41,18 +44,10 @@ class CandidatesMenuAdapter(context: Context?) : RecyclerView.Adapter<Candidates
         mOnItemClickListener = mOnItemClickLitener
     }
 
-    init {
-        inflater = LayoutInflater.from(context)
-        itemHeight = (EnvironmentSingleton.instance.heightForCandidates * 0.6f).toInt()
-    }
-
     inner class SymbolHolder(view: View) : RecyclerView.ViewHolder(view) {
         var entranceIconImageView: ImageView? = null
         init {
             entranceIconImageView = itemView.findViewById(R.id.candidates_menu_item)
-            val layoutParams = itemView.layoutParams
-            layoutParams.width = itemHeight
-            layoutParams.height = itemHeight
         }
     }
 
@@ -64,6 +59,10 @@ class CandidatesMenuAdapter(context: Context?) : RecyclerView.Adapter<Candidates
 
     override fun onBindViewHolder(holder: SymbolHolder, position: Int) {
         val item = items[position]
+        holder.entranceIconImageView?.padding = mMenuPadding
+        val layoutParams = holder.entranceIconImageView?.layoutParams
+        layoutParams?.width = itemHeight
+        layoutParams?.height = itemHeight
         holder.entranceIconImageView?.setImageResource(item.funImgRecource)
         val color = if (isSettingsMenuSelect(item)) activeTheme.accentKeyBackgroundColor else activeTheme.keyTextColor
         holder.entranceIconImageView?.getDrawable()?.setTint(color)
@@ -124,6 +123,8 @@ class CandidatesMenuAdapter(context: Context?) : RecyclerView.Adapter<Candidates
     }
 
     fun notifyChanged() {
+        itemHeight = (instance.heightForCandidatesArea * 0.8f).toInt()
+        mMenuPadding = (instance.heightForCandidatesArea * 0.05f).toInt()
         notifyDataSetChanged()
     }
 }

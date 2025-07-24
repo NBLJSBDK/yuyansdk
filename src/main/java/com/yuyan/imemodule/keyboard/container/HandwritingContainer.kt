@@ -102,7 +102,7 @@ class HandwritingContainer(context: Context?, inputView: InputView) : InputBaseC
         mRVRightSymbols.setAdapter(null)
         mRVRightSymbols.setOnItemClickListener{ _: View?, position: Int ->
             val symbol = mSideSymbolsPinyin.map { it.symbolValue }[position]
-            val softKey = SoftKey(symbol)
+            val softKey = SoftKey(label = symbol)
             inputView.responseKeyEvent(softKey)
         }
         mRVRightSymbols.setAdapter(adapter)

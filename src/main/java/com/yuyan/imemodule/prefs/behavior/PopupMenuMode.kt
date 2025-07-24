@@ -8,7 +8,9 @@ enum class PopupMenuMode {
     SwitchIME,
     EnglishCell,
     Revertl,
+    Move,
     Enter,
+    EMOJI,
     None;
 
     companion object : ManagedPreference.StringLikeCodec<PopupMenuMode> {

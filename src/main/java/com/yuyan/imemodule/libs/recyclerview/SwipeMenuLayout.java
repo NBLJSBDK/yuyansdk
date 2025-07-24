@@ -15,9 +15,6 @@ import androidx.core.view.ViewCompat;
 
 import com.yuyan.imemodule.R;
 
-/**
- * Created by Yan Zhenjie on 2016/7/27.
- */
 public class SwipeMenuLayout extends FrameLayout implements Controller {
 
     public static final int DEFAULT_SCROLLER_DURATION = 200;

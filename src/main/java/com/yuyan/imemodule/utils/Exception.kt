@@ -1,13 +1,13 @@
 package com.yuyan.imemodule.utils
 
 import androidx.annotation.StringRes
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 
 inline fun <T : Throwable> errorT(cons: (String) -> T, @StringRes messageTemplate: Int, messageArg: String? = null): Nothing =
     throw cons(
         messageArg?.let {
-            ImeSdkApplication.context.getString(messageTemplate, it)
-        } ?: ImeSdkApplication.context.getString(
+            Launcher.instance.context.getString(messageTemplate, it)
+        } ?: Launcher.instance.context.getString(
             messageTemplate
         )
     )

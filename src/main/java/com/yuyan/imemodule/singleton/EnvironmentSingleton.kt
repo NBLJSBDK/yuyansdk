@@ -1,8 +1,9 @@
 package com.yuyan.imemodule.singleton
 
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.data.theme.ThemeManager
 import com.yuyan.imemodule.prefs.AppPrefs
+import com.yuyan.imemodule.utils.DevicesUtils
 import kotlin.math.max
 import kotlin.math.min
 
@@ -19,20 +20,23 @@ class EnvironmentSingleton private constructor() {
     var systemNavbarWindowsBottom = 0 // 导航栏高度
     var mScreenWidth = 0 // 屏幕的宽度
     var mScreenHeight = 0 // 屏幕的高度
-    var skbWidth = 0 // 键盘区域、候选词区域宽度
-        private set
     var inputAreaHeight = 0 // 键盘区域高度
-    var skbHeight = 0 // 键盘区域高度
+    var inputAreaWidth = 0 // 键盘区域宽度
+    var skbWidth = 0 // 键盘按键区域、候选词区域宽度
+        private set
+    var skbHeight = 0 // 键盘按键区高度
         private set
     var holderWidth = 0 // 单手模式下键盘占位区域宽度
         private set
+    var heightForCandidatesArea = 0 // 候选词区域的高度
+    var heightForcomposing = 0 // 候选词区域的高度
     var heightForCandidates = 0 // 候选词区域的高度
-    var heightForComposingView = 0 // 拼音显示区域高度
     var heightForFullDisplayBar = 0 // 智能导航栏高度
     var heightForKeyboardMove = 0 // 悬浮键盘移动条高度
     var keyTextSize = 0 // 正常按键中文本的大小
     var keyTextSmallSize = 0 // 正常按键中文本的大小,小值
-    var candidateTextSize = 0 // 候选词字体大小
+    var candidateTextSize = 0f // 候选词字体大小
+    var composingTextSize = 0f // 候选词字体大小
     var isLandscape = false //键盘是否横屏
     var keyXMargin = 0 //键盘按键水平间距
     var keyYMargin = 0 //键盘按键垂直间距
@@ -44,37 +48,46 @@ class EnvironmentSingleton private constructor() {
     }
 
     fun initData() {
-        val resources = ImeSdkApplication.context.resources
+        val resources = Launcher.instance.context.resources
         val dm = resources.displayMetrics
         mScreenWidth = dm.widthPixels
         mScreenHeight = dm.heightPixels
         isLandscape = mScreenHeight <= mScreenWidth
         var screenWidthVertical = mScreenWidth
         var screenHeightVertical = mScreenHeight
-        val oneHandedMod = AppPrefs.getInstance().keyboardSetting.oneHandedModSwitch.getValue()
-        // 按键 + 后续高度，值是相对于竖屏宽度，横屏高度。
-        keyboardHeightRatio =  if(isLandscape && !keyboardModeFloat) AppPrefs.getInstance().internal.keyboardHeightRatioLandscape.getValue()
-            else AppPrefs.getInstance().internal.keyboardHeightRatio.getValue()
-        val candidatesHeightRatio =  if(isLandscape && !keyboardModeFloat) AppPrefs.getInstance().internal.candidatesHeightRatioLandscape.getValue()
-        else AppPrefs.getInstance().internal.candidatesHeightRatio.getValue()
         if(keyboardModeFloat){
-            screenWidthVertical = (min(dm.widthPixels, dm.heightPixels)*3f/4).toInt()
-            screenHeightVertical = (max(dm.widthPixels, dm.heightPixels)*3f/4).toInt()
+            screenWidthVertical = (min(dm.widthPixels, dm.heightPixels) * 3f / 4).toInt()
+            screenHeightVertical = (max(dm.widthPixels, dm.heightPixels) * 3f / 4).toInt()
         }
-        skbHeight = (screenHeightVertical * keyboardHeightRatio).toInt()
+        val oneHandedMod = AppPrefs.getInstance().keyboardSetting.oneHandedModSwitch.getValue()
         // 键盘占位宽度（用于单手模式），值是相对于竖屏宽度，横屏高度。
         holderWidth = if (oneHandedMod) (screenWidthVertical * 0.2f).toInt() else 0
         skbWidth = screenWidthVertical - holderWidth
-        heightForCandidates = (screenHeightVertical * candidatesHeightRatio).toInt()
-        heightForComposingView = (heightForCandidates*0.5f).toInt()
-        heightForFullDisplayBar = (heightForCandidates*0.7f).toInt()
-        heightForKeyboardMove = (heightForCandidates*0.2f).toInt()
+        inputAreaWidth = skbWidth
+        var candidatesHeightRatio = AppPrefs.getInstance().internal.candidatesHeightRatio.getValue()
+        // 按键 + 后续高度，值是相对于竖屏宽度，横屏高度。
+        if(isLandscape && !keyboardModeFloat){
+            inputAreaWidth = mScreenWidth
+            skbWidth = (skbWidth * 0.7).toInt()
+            keyboardHeightRatio = AppPrefs.getInstance().internal.keyboardHeightRatioLandscape.getValue()
+            candidatesHeightRatio = AppPrefs.getInstance().internal.candidatesHeightRatioLandscape.getValue()
+        } else {
+            keyboardHeightRatio = AppPrefs.getInstance().internal.keyboardHeightRatio.getValue()
+        }
+        skbHeight = (screenHeightVertical * keyboardHeightRatio).toInt()
+        heightForcomposing = (screenHeightVertical * candidatesHeightRatio *
+                AppPrefs.getInstance().keyboardSetting.candidateTextSize.getValue() / 100f).toInt()
+        heightForCandidates = (heightForcomposing * 1.8).toInt()
+        heightForCandidatesArea = (heightForcomposing * 2.8).toInt()
+        composingTextSize = DevicesUtils.px2sp (heightForcomposing)
+        candidateTextSize = DevicesUtils.px2sp (heightForCandidates)
+        heightForFullDisplayBar = (heightForCandidatesArea * 0.7f).toInt()
+        heightForKeyboardMove = (heightForCandidatesArea * 0.2f).toInt()
         keyTextSize = (skbHeight * 0.06f).toInt()
         keyTextSmallSize = (skbHeight * 0.04f).toInt()
         keyXMargin = (ThemeManager.prefs.keyXMargin.getValue() / 1000f * skbWidth).toInt()
         keyYMargin = (ThemeManager.prefs.keyYMargin.getValue() / 1000f * skbHeight).toInt()
-        candidateTextSize = (heightForCandidates * (0.3f + AppPrefs.getInstance().keyboardSetting.candidateTextSize.getValue()/100f)).toInt()
-        inputAreaHeight = skbHeight + heightForCandidates
+        inputAreaHeight = skbHeight + heightForCandidatesArea
     }
 
     var keyBoardHeightRatio: Float

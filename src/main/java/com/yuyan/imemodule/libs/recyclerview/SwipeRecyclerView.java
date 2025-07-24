@@ -18,9 +18,6 @@ import java.util.List;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-/**
- * Created by Yan Zhenjie on 2016/7/27.
- */
 public class SwipeRecyclerView extends RecyclerView {
 
     /**

@@ -1,7 +1,7 @@
 package com.yuyan.imemodule.keyboard
 
 import com.yuyan.imemodule.application.CustomConstant
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.data.flower.FlowerTypefaceMode
 import com.yuyan.imemodule.data.theme.ThemeManager
 import com.yuyan.imemodule.manager.InputModeSwitcherManager
@@ -44,7 +44,7 @@ fun onSettingsMenuClick(inputView: InputView, skbMenuMode: SkbMenuMode) {
             KeyboardManager.instance.switchKeyboard()
         }
         SkbMenuMode.Feedback -> {
-            AppUtil.launchSettingsToKeyboard(ImeSdkApplication.context)
+            AppUtil.launchSettingsToKeyboard(Launcher.instance.context)
         }
         SkbMenuMode.NumberRow -> {
             val abcNumberLine = AppPrefs.getInstance().keyboardSetting.abcNumberLine.getValue()
@@ -84,8 +84,8 @@ fun onSettingsMenuClick(inputView: InputView, skbMenuMode: SkbMenuMode) {
             Kernel.nativeUpdateImeOption()
             KeyboardManager.instance.switchKeyboard()
         }
-        SkbMenuMode.Handwriting -> AppUtil.launchSettingsToHandwriting(ImeSdkApplication.context)
-        SkbMenuMode.Settings -> AppUtil.launchSettings(ImeSdkApplication.context)
+        SkbMenuMode.Handwriting -> AppUtil.launchSettingsToHandwriting(Launcher.instance.context)
+        SkbMenuMode.Settings -> AppUtil.launchSettings(Launcher.instance.context)
         SkbMenuMode.OneHanded -> {
             AppPrefs.getInstance().keyboardSetting.oneHandedModSwitch.setValue(!AppPrefs.getInstance().keyboardSetting.oneHandedModSwitch.getValue())
             EnvironmentSingleton.instance.initData()

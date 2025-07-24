@@ -1,6 +1,6 @@
 package com.yuyan.imemodule.data.theme
 
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileFilter
@@ -8,7 +8,7 @@ import java.util.UUID
 
 object ThemeFilesManager {
 
-    private val dir = File(ImeSdkApplication.context.getExternalFilesDir(null), "theme").also { it.mkdirs() }
+    private val dir = File(Launcher.instance.context.getExternalFilesDir(null), "theme").also { it.mkdirs() }
 
     private fun themeFile(theme: Theme.Custom) = File(dir, theme.name + ".json")
 

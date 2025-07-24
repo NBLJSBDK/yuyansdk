@@ -32,6 +32,7 @@ fun PreferenceGroup.addPreference(
     addPreference(Preference(context).apply {
         isSingleLineTitle = false
         setTitle(title)
+        isCopyingEnabled = true
         setSummary(summary)
         if (icon == null) {
             isIconSpaceReserved = false

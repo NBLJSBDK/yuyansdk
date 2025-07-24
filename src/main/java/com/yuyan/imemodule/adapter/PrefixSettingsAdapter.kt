@@ -9,7 +9,7 @@ import android.widget.LinearLayout
 import androidx.core.widget.doOnTextChanged
 import androidx.recyclerview.widget.RecyclerView
 import com.yuyan.imemodule.R
-import com.yuyan.imemodule.application.ImeSdkApplication.Companion.context
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.database.entry.SideSymbol
 import splitties.dimensions.dp
 import splitties.views.dsl.core.add
@@ -24,7 +24,7 @@ class PrefixSettingsAdapter ( private val mDatas: MutableList<SideSymbol>, type:
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PrefixSettingsHolder {
-        val content = LinearLayout(context).apply {
+        val content = LinearLayout(Launcher.instance.context).apply {
             setPadding(0, dp(5), 0, dp(5))
             add(editText {
                 gravity = Gravity.CENTER

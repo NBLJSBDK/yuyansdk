@@ -18,6 +18,7 @@
         android:id="@+id/ll_input_keyboard_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
         android:layout_toEndOf="@+id/ll_skb_holder_layout_left">
         <!--候选词视图，即 键盘顶部分的视图，分情况显示候选词，或者显示顶部操作栏-->
         <com.yuyan.imemodule.view.CandidatesBar

@@ -7,7 +7,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import com.yuyan.imemodule.R
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.application.CustomConstant
 import com.yuyan.imemodule.manager.InputModeSwitcherManager
 import com.yuyan.imemodule.prefs.behavior.ClipboardLayoutMode
@@ -28,8 +28,8 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val dataDictVersion = int("rime_dict_data_version", 0)  //缓存rime词库版本号,用于校验是否覆盖词库文件
         val keyboardHeightRatio = float("keyboard_height_ratio", 0.3f)     //键盘高度比例
         val keyboardHeightRatioLandscape = float("keyboard_height_ratio_landscape", 0.5f)     //键盘高度比例:横屏
-        val candidatesHeightRatio = float("candidates_height_ratio", 0.07f)     //候选词栏高度比例
-        val candidatesHeightRatioLandscape = float("candidates_height_ratio_landscape", 0.12f)     //候选词栏高度比例:横屏
+        val candidatesHeightRatio = float("candidates_height_ratio", 0.035f)     //候选词栏高度比例
+        val candidatesHeightRatioLandscape = float("candidates_height_ratio_landscape", 0.06f)     //候选词栏高度比例:横屏
         val keyboardModeFloat = bool("keyboard_mode_float", false)     // 悬浮模式
         val keyboardModeFloatLandscape = bool("keyboard_mode_float_landscape", false)// 悬浮模式:横屏
         val keyboardBottomPaddingFloat = int("keyboard_padding_bottom", DevicesUtils.dip2px(100))     //竖屏悬浮模式底边距
@@ -113,10 +113,10 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
         val candidateTextSize = int(
             R.string.candidate_size_input_setting,
-            "candidate_size_input_setting",
-            10,
-            -20,
-            40,
+            "candidate_size",
+            55,
+            25,
+            100,
             "%",
             defaultLabel = R.string.system_default
         )
@@ -221,7 +221,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "clipboard_limit",
             50,
             10,
-            500,
+            110,
             "条",
             10,
             defaultLabel = R.string.num_50
@@ -290,7 +290,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun syncToDeviceEncryptedStorage() {
-        val ctx = ImeSdkApplication.context.createDeviceProtectedStorageContext()
+        val ctx = Launcher.instance.context.createDeviceProtectedStorageContext()
         val sp = PreferenceManager.getDefaultSharedPreferences(ctx)
         sp.edit {
             internal.managedPreferences.forEach {

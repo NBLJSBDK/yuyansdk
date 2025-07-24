@@ -15,8 +15,7 @@
 
 package com.yuyan.imemodule.libs.pinyin4j;
 
-import com.yuyan.imemodule.application.ImeSdkApplication;
-
+import com.yuyan.imemodule.application.Launcher;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 
@@ -31,6 +30,6 @@ class ResourceHelper {
    *         package) as BufferedInputStream
    */
   static BufferedInputStream getResourceInputStream(String resourceName) throws IOException{
-      return new BufferedInputStream(ImeSdkApplication.getContext().getAssets().open(resourceName));
+      return new BufferedInputStream(Launcher.Companion.getInstance().getContext().getAssets().open(resourceName));
   }
 }

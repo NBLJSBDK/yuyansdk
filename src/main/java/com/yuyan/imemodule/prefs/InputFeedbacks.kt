@@ -5,7 +5,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.view.HapticFeedbackConstants
 import android.view.View
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.utils.audioManager
 import com.yuyan.imemodule.utils.vibrator
 
@@ -14,9 +14,9 @@ object InputFeedbacks {
     private val soundOnKeyPress by AppPrefs.getInstance().internal.soundOnKeyPress
     private val vibrationAmplitude by AppPrefs.getInstance().internal.vibrationAmplitude
 
-    private val vibrator = ImeSdkApplication.context.vibrator
+    private val vibrator = Launcher.instance.context.vibrator
     private val hasAmplitudeControl = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && vibrator.hasAmplitudeControl()
-    private val audioManager = ImeSdkApplication.context.audioManager
+    private val audioManager = Launcher.instance.context.audioManager
 
     fun hapticFeedback(view: View) {
         val duration = when (vibrationAmplitude) {

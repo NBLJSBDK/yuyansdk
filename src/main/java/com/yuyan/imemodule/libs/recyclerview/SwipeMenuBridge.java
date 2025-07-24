@@ -1,8 +1,5 @@
 package com.yuyan.imemodule.libs.recyclerview;
 
-/**
- * Created by YanZhenjie on 2017/7/20.
- */
 public class SwipeMenuBridge {
 
     private final Controller mController;

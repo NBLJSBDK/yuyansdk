@@ -10,9 +10,6 @@ import java.util.ArrayList;
 import androidx.annotation.NonNull;
 import androidx.core.widget.NestedScrollView;
 
-/**
- * Created by YanZhenjie on 2017/7/20.
- */
 public class StickyNestedScrollView extends NestedScrollView {
 
     /**

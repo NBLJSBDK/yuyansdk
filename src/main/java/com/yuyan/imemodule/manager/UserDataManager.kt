@@ -2,7 +2,7 @@ package com.yuyan.imemodule.manager
 
 import com.yuyan.imemodule.BuildConfig
 import com.yuyan.imemodule.R
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.utils.errorRuntime
 import com.yuyan.imemodule.utils.extract
 import com.yuyan.imemodule.utils.withTempDir
@@ -45,9 +45,9 @@ object UserDataManager {
         }
     }
 
-    private val sharedPrefsDir = File(ImeSdkApplication.context.applicationInfo.dataDir, "shared_prefs")
-    private val dataBasesDir = File(ImeSdkApplication.context.applicationInfo.dataDir, "databases")
-    private val externalDir = ImeSdkApplication.context.getExternalFilesDir(null)!!
+    private val sharedPrefsDir = File(Launcher.instance.context.applicationInfo.dataDir, "shared_prefs")
+    private val dataBasesDir = File(Launcher.instance.context.applicationInfo.dataDir, "databases")
+    private val externalDir = Launcher.instance.context.getExternalFilesDir(null)!!
 
     @OptIn(ExperimentalSerializationApi::class)
     fun export(dest: OutputStream, timestamp: Long = System.currentTimeMillis()) = runCatching {
@@ -60,11 +60,11 @@ object UserDataManager {
             writeFileTree(externalDir, "external", zipStream)
             // metadata
             zipStream.putNextEntry(ZipEntry("metadata.json"))
-            val pkgInfo = ImeSdkApplication.context.packageManager.getPackageInfo(ImeSdkApplication.context.packageName, 0)
+            val pkgInfo = Launcher.instance.context.packageManager.getPackageInfo(Launcher.instance.context.packageName, 0)
             val metadata = Metadata(
                 pkgInfo.packageName,
                 pkgInfo.versionCodeCompat,
-                BuildConfig.SdkCommitHead,
+                BuildConfig.versionName,
                 timestamp
             )
             json.encodeToStream(metadata, zipStream)

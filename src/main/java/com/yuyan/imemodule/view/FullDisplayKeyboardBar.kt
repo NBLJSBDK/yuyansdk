@@ -84,7 +84,7 @@ class FullDisplayKeyboardBar(context: Context?, inputView: InputView) : LinearLa
             FullDisplayKeyMode.SwitchLanguage -> InputModeSwitcherManager.switchModeForUserKey(InputModeSwitcherManager.USER_DEF_KEYCODE_LANG_2)
             FullDisplayKeyMode.Clipboard, FullDisplayKeyMode.Phrases -> {
                 if(KeyboardManager.instance.currentContainer is ClipBoardContainer){
-                    KeyboardManager.instance.switchKeyboard(InputModeSwitcherManager.skbImeLayout)
+                    KeyboardManager.instance.switchKeyboard()
                 } else {
                     KeyboardManager.instance.switchKeyboard(KeyboardManager.KeyboardType.ClipBoard)
                     (KeyboardManager.instance.currentContainer as ClipBoardContainer?)?.showClipBoardView(
@@ -109,7 +109,7 @@ class FullDisplayKeyboardBar(context: Context?, inputView: InputView) : LinearLa
             val relDiffX = abs(currentX - lastEventX)
             if (relDiffX > 10 && mCenterModeMove) {  // 左右滑动
                 val key = SoftKey()
-                key.keyCode = if (currentX < lastEventX) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
+                key.code = if (currentX < lastEventX) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
                 mInputView.responseKeyEvent(key)
                 lastEventX = currentX
                 result = true

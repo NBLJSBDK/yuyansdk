@@ -1,8 +1,5 @@
 package com.yuyan.imemodule.libs.recyclerview;
 
-/**
- * Created by Yan Zhenjie on 2016/7/26.
- */
 public interface OnItemMenuClickListener {
 
     /**

@@ -23,9 +23,3 @@ inline fun SpannableStringBuilder.inSpans(
     setSpan(span, start, length, Spannable.SPAN_INCLUSIVE_EXCLUSIVE)
     return this
 }
-
-inline fun SpannableStringBuilder.underline(
-    builderAction: SpannableStringBuilder.() -> Unit
-): SpannableStringBuilder = inSpans(UnderlineSpan(), builderAction = builderAction)
-
-fun CharSequence.isDigitsOnly(): Boolean = TextUtils.isDigitsOnly(this)

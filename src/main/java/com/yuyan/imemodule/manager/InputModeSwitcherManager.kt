@@ -48,6 +48,16 @@ object InputModeSwitcherManager {
     const val USER_DEF_KEYCODE_TEXTEDIT_7 = -7
 
     /**
+     * User defined key code, used by soft keyboard. 表情逗号。
+     */
+    const val USER_DEF_KEYCODE_EMOJI_8 = -8
+
+    /**
+     * User defined key code, used by soft keyboard. 方向控制。
+     */
+    const val USER_DEF_KEYCODE_CURSOR_DIRECTION_9 = -9
+
+    /**
      * User defined key code, used by soft keyboard. 语言键的code,九宫格、手写符号侧栏占位符。
      */
     const val USER_DEF_KEYCODE_LEFT_SYMBOL_12 = -12
@@ -122,9 +132,9 @@ object InputModeSwitcherManager {
 
     /**
      * A kind of soft keyboard layout. An input mode should be anded with
-     * [.MASK_SKB_LAYOUT] to get its soft keyboard layout. 指明乱序17
+     * [.MASK_SKB_LAYOUT] to get its soft keyboard layout. 指明笔画键盘
      */
-    const val MASK_SKB_LAYOUT_STROKE= 0x7000
+    const val MASK_SKB_LAYOUT_STROKE = 0x7000
 
     /**
      * A kind of soft keyboard layout. An input mode should be anded with
@@ -212,11 +222,6 @@ object InputModeSwitcherManager {
     private var mRecentLauageInputMode = MODE_UNSET
 
     /**
-     * 输入框模式：密码输入框时，不启动自动补全功能
-     */
-    var mInputTypePassword = false
-
-    /**
      * Used to indicate required toggling operations.
      * 控制当前输入法模式软键盘布局要显示的按键切换状态和要显示的行ID。比如当前软键盘布局中
      * ，有一个按键有默认状态、和两个切换状态，ToggleStates中的mKeyStates[]保存的就是当前要显示的切换状态
@@ -265,24 +270,29 @@ object InputModeSwitcherManager {
 
     // 记录SHIFT点击时间，作为双击判断
     private var lsatClickTime = 0L
+
+    // 中文模式，临时切换为英文
+    private var isChineseMode = true
     /**
      * 通过我们定义的软键盘的按键，切换输入法模式。
      */
     fun switchModeForUserKey(userKey: Int) {
         var newInputMode = MODE_UNSET
         if (USER_DEF_KEYCODE_SHIFT_1 == userKey) {
-            // shift键：显示“，” 或者 大小写图标的按键。
+            if(isChinese && !isChineseMode)isChineseMode = true
             newInputMode = if(System.currentTimeMillis() - lsatClickTime < 300){
                 MODE_SKB_ENGLISH_UPPER_LOCK
             } else if (MODE_SKB_ENGLISH_LOWER == mInputMode) {
                 MODE_SKB_ENGLISH_UPPER
+            } else if (MODE_SKB_ENGLISH_UPPER == mInputMode || MODE_SKB_ENGLISH_UPPER_LOCK == mInputMode){
+                if(isChineseMode) getInstance().internal.inputMethodPinyinMode.getValue() else MODE_SKB_ENGLISH_LOWER
             } else {
                 MODE_SKB_ENGLISH_LOWER
             }
             lsatClickTime = System.currentTimeMillis()
         } else if (USER_DEF_KEYCODE_LANG_2 == userKey) {
-            // 语言键：显示中文或者英文、中符、英符的键
             newInputMode = if (isChinese) {
+                isChineseMode = false
                 MODE_SKB_ENGLISH_LOWER
             } else {
                 getInstance().internal.inputMethodPinyinMode.getValue()
@@ -294,11 +304,9 @@ object InputModeSwitcherManager {
         } else if (USER_DEF_KEYCODE_RETURN_6 == userKey) {
             newInputMode = if (mRecentLauageInputMode != 0) mRecentLauageInputMode else getInstance().internal.inputMethodPinyinMode.getValue()
         }
-        if (newInputMode != mInputMode && MODE_UNSET != newInputMode) {
-            // 保存新的输入法模式
-            saveInputMode(newInputMode)
-            KeyboardManager.instance.switchKeyboard()
-        }
+        // 保存新的输入法模式
+        saveInputMode(newInputMode)
+        KeyboardManager.instance.switchKeyboard()
     }
 
     /**
@@ -306,7 +314,6 @@ object InputModeSwitcherManager {
      */
     fun requestInputWithSkb(editorInfo: EditorInfo) {
         var newInputMode = MODE_UNSET
-        mInputTypePassword = false
         when (editorInfo.inputType and EditorInfo.TYPE_MASK_CLASS) {
             EditorInfo.TYPE_CLASS_NUMBER, EditorInfo.TYPE_CLASS_PHONE, EditorInfo.TYPE_CLASS_DATETIME -> newInputMode = MASK_SKB_LAYOUT_NUMBER
             else -> {
@@ -315,7 +322,6 @@ object InputModeSwitcherManager {
                     || v == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD
                     || v == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
                     || v == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD) {
-                        mInputTypePassword = true
                         MODE_SKB_ENGLISH_LOWER
                     } else if(getInstance().keyboardSetting.keyboardLockEnglish.getValue()){
                         getInstance().internal.inputDefaultMode.getValue()
@@ -363,6 +369,12 @@ object InputModeSwitcherManager {
          * 是否的9宫格中文语言
          */
         get() = mInputMode and (MASK_SKB_LAYOUT or MASK_LANGUAGE) == MODE_T9_CHINESE
+
+    val isQwert: Boolean
+        /**
+         * 是否的全键中文语言
+         */
+        get() = mInputMode and MASK_SKB_LAYOUT == MASK_SKB_LAYOUT_QWERTY_PINYIN || mInputMode and MASK_SKB_LAYOUT == MASK_SKB_LAYOUT_QWERTY_ABC
 
     val isChineseHandWriting: Boolean
         /**

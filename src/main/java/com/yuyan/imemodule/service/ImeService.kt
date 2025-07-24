@@ -13,6 +13,7 @@ import com.yuyan.imemodule.data.emojicon.YuyanEmojiCompat
 import com.yuyan.imemodule.data.theme.Theme
 import com.yuyan.imemodule.data.theme.ThemeManager.OnThemeChangeListener
 import com.yuyan.imemodule.data.theme.ThemeManager.addOnChangedListener
+import com.yuyan.imemodule.data.theme.ThemeManager.onSystemDarkModeChange
 import com.yuyan.imemodule.data.theme.ThemeManager.removeOnChangedListener
 import com.yuyan.imemodule.manager.InputModeSwitcherManager
 import com.yuyan.imemodule.prefs.AppPrefs.Companion.getInstance
@@ -22,7 +23,9 @@ import com.yuyan.imemodule.utils.KeyboardLoaderUtil
 import com.yuyan.imemodule.keyboard.InputView
 import com.yuyan.imemodule.keyboard.KeyboardManager
 import com.yuyan.imemodule.keyboard.container.ClipBoardContainer
+import com.yuyan.imemodule.utils.LogUtil
 import com.yuyan.imemodule.utils.StringUtils
+import com.yuyan.imemodule.utils.isDarkMode
 import com.yuyan.imemodule.view.preference.ManagedPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -85,8 +88,9 @@ class ImeService : InputMethodService() {
             EnvironmentSingleton.instance.initData()
             KeyboardLoaderUtil.instance.clearKeyboardMap()
             KeyboardManager.instance.clearKeyboard()
-            if (::mInputView.isInitialized) KeyboardManager.instance.switchKeyboard(InputModeSwitcherManager.skbImeLayout)
+            if (::mInputView.isInitialized) KeyboardManager.instance.switchKeyboard()
         }
+        onSystemDarkModeChange(newConfig.isDarkMode())
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -133,7 +137,7 @@ class ImeService : InputMethodService() {
 
     override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
-        if (::mInputView.isInitialized) mInputView.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd)
+        if (::mInputView.isInitialized) mInputView.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesEnd)
     }
 
     override fun onWindowShown() {
@@ -203,6 +207,14 @@ class ImeService : InputMethodService() {
         currentInputConnection.setComposingText(text, 1)
     }
 
+
+    /**
+     * 结束提交预选词
+     */
+    fun finishComposingText() {
+        currentInputConnection.finishComposingText()
+    }
+
     /**
      * 发送字符串给编辑框
      */
@@ -214,8 +226,12 @@ class ImeService : InputMethodService() {
         return currentInputConnection.getTextBeforeCursor(length, 0).toString()
     }
 
-    fun commitTestEditMenu(id:Int) {
+    fun commitTextEditMenu(id:Int) {
         currentInputConnection.performContextMenuAction(id)
+    }
+
+    fun performEditorAction(editorAction:Int) {
+        currentInputConnection.performEditorAction(editorAction)
     }
 
     fun deleteSurroundingText(length:Int) {

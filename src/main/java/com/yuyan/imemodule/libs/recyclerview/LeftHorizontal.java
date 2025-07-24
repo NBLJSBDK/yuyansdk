@@ -3,9 +3,6 @@ package com.yuyan.imemodule.libs.recyclerview;
 import android.view.View;
 import android.widget.OverScroller;
 
-/**
- * Created by Yan Zhenjie on 2016/7/22.
- */
 class LeftHorizontal extends Horizontal {
 
     public LeftHorizontal(View menuView) {

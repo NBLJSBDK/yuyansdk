@@ -3,31 +3,7 @@ __build_info:
   timestamps:
     default: 1744370669
     default.custom: 1744370670
-ascii_composer:
-  good_old_caps_lock: true
-  switch_key:
-    Caps_Lock: clear
-    Control_L: noop
-    Control_R: noop
-    Shift_L: commit_code
-    Shift_R: noop
-config_version: "2024-07-12"
-key_binder:
-  bindings:
-    - {accept: minus, send: Page_Up, when: has_menu}
-    - {accept: equal, send: Page_Down, when: has_menu}
-  select_first_character: bracketleft
-  select_last_character: bracketright
-menu:
-  page_size: 50
-punctuator:
-  symbols:
-    "/": ["＠", "＃", "＊", "＋", "……", "〜", "（", "）", "、", "/"]
-recognizer:
-  patterns:
-    email: "^[A-Za-z][-_.0-9A-Za-z]*@.*$"
-    underscore: "^[A-Za-z]+_.*"
-    url: "^(www[.]|https?:|ftp[.:]|mailto:|file:).*$|^[a-z]+[.].+$"
+config_version: "2025-06-06"
 schema_list:
   - schema: t9_pinyin
   - schema: pinyin
@@ -40,14 +16,3 @@ schema_list:
   - schema: double_pinyin_ls17
   - schema: stroke
   - schema: english
-switcher:
-  abbreviate_options: true
-  caption: "「方案选单」"
-  fold_options: true
-  option_list_separator: " / "
-  save_options:
-    - ascii_punct
-    - traditionalization
-    - emoji
-    - full_shape
-    - search_single_char

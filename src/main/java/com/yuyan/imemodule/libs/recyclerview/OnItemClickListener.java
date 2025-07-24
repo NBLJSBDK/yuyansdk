@@ -2,9 +2,6 @@ package com.yuyan.imemodule.libs.recyclerview;
 
 import android.view.View;
 
-/**
- * Created by YanZhenjie on 2017/7/21.
- */
 public interface OnItemClickListener {
 
     /**

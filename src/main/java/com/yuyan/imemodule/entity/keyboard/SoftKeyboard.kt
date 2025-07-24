@@ -32,7 +32,7 @@ class SoftKeyboard(var mKeyRows: List<List<SoftKey>>) {
     fun getKeyByCode(code: Int): SoftKey? {
         for (keyRow in mKeyRows) {
             for (sKey in keyRow) {
-                if (sKey.keyCode == code) return sKey
+                if (sKey.code == code) return sKey
             }
         }
         return null

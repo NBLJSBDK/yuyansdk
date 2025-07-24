@@ -15,12 +15,8 @@ import com.yuyan.imemodule.utils.StringUtils.sbc2dbcCase
  */
 class PrefixAdapter(context: Context?, private val mDatas: Array<String>) :
     RecyclerView.Adapter<PrefixAdapter.SymbolTypeHolder>() {
-    private val inflater: LayoutInflater
+    private val inflater: LayoutInflater = LayoutInflater.from(context)
     private val textColor: Int = activeTheme.keyTextColor
-
-    init {
-        inflater = LayoutInflater.from(context)
-    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolTypeHolder {
         val view = inflater.inflate(R.layout.sdk_item_list_alpha_symbol_noraml, parent, false)
@@ -36,8 +32,7 @@ class PrefixAdapter(context: Context?, private val mDatas: Array<String>) :
     }
 
     inner class SymbolTypeHolder(view: View) : RecyclerView.ViewHolder(view) {
-        var tvSymbolType: EmojiTextView
-
+        var tvSymbolType: EmojiTextView = view.findViewById(android.R.id.text1)
         init {
             tvSymbolType = view.findViewById(android.R.id.text1)
             tvSymbolType.setTextColor(textColor)

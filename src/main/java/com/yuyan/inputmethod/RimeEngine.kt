@@ -2,6 +2,7 @@ package com.yuyan.inputmethod
 
 import android.view.KeyEvent
 import com.yuyan.imemodule.application.CustomConstant
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.manager.InputModeSwitcherManager
 import com.yuyan.imemodule.prefs.AppPrefs
 import com.yuyan.imemodule.utils.StringUtils
@@ -10,6 +11,7 @@ import com.yuyan.inputmethod.core.Rime
 import com.yuyan.inputmethod.data.InputKey
 import com.yuyan.inputmethod.data.KeyRecordStack
 import com.yuyan.inputmethod.util.DoublePinYinUtils
+import com.yuyan.inputmethod.util.LX17PinYinUtils
 import com.yuyan.inputmethod.util.QwertyPinYinUtils
 import com.yuyan.inputmethod.util.T9PinYinUtils
 import java.util.Locale
@@ -27,10 +29,12 @@ object RimeEngine {
 
     fun selectSchema(mod: String): Boolean {
         keyRecordStack.clear()
-        val shareDir = CustomConstant.RIME_DICT_PATH
-        val userDir = CustomConstant.RIME_DICT_PATH
-        Rime.startupRime(shareDir, userDir, true)
+        Rime.startup(Launcher.instance.context, false)
         return Rime.selectSchema(mod)
+    }
+
+    fun getCurrentRimeSchema(): String {
+        return Rime.getCurrentRimeSchema()
     }
 
     /**
@@ -42,10 +46,8 @@ object RimeEngine {
 
     fun onNormalKey(event: KeyEvent) {
         val keyCode = event.keyCode
-        val keyChar = when (keyCode) {
-            KeyEvent.KEYCODE_APOSTROPHE -> if(isFinish()) '/'.code else '\''.code
-            else -> event.unicodeChar
-        }
+        val keyChar = if(keyCode == KeyEvent.KEYCODE_APOSTROPHE) if(isFinish()) '/'.code else '\''.code
+            else event.unicodeChar
         if (keyRecordStack.pushKey(keyCode))Rime.processKey(keyChar, event.action)
         updateCandidatesOrCommitText()
     }
@@ -155,12 +157,14 @@ object RimeEngine {
         if (rimeCommit != null) {
             keyRecordStack.clear()
             preCommitText = rimeCommit.commitText
-            preCommitText = if (InputModeSwitcherManager.isEnglishUpperCase) {
-                preCommitText.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-            } else if (InputModeSwitcherManager.isEnglishUpperLockCase) {
-                preCommitText.uppercase()
-            } else {
-                preCommitText.lowercase()
+            if(Rime.getCurrentRimeSchema() == CustomConstant.SCHEMA_EN) {
+                preCommitText = if (InputModeSwitcherManager.isEnglishUpperCase) {
+                    preCommitText.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                } else if (InputModeSwitcherManager.isEnglishUpperLockCase) {
+                    preCommitText.uppercase()
+                } else {
+                    preCommitText.lowercase()
+                }
             }
             showComposition = ""
             showCandidates = emptyList()
@@ -182,19 +186,24 @@ object RimeEngine {
             else -> candidates
         }
         var composition = getCurrentComposition(candidates)
-        if (InputModeSwitcherManager.isEnglishUpperCase) {
-            for (item in showCandidates) item.text = item.text.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-            composition = composition.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-        } else if (InputModeSwitcherManager.isEnglishUpperLockCase) {
-            for (item in showCandidates) item.text = item.text.uppercase()
-            composition = composition.uppercase()
-        } else {
-            for (item in showCandidates) item.text = item.text.lowercase()
-            composition = composition.lowercase()
+        if(Rime.getCurrentRimeSchema() == CustomConstant.SCHEMA_EN) {
+            if (InputModeSwitcherManager.isEnglishUpperCase) {
+                for (item in showCandidates) item.text = item.text.lowercase()
+                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                composition = composition.lowercase()
+                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            } else if (InputModeSwitcherManager.isEnglishUpperLockCase) {
+                for (item in showCandidates) item.text = item.text.uppercase()
+                composition = composition.uppercase()
+            } else {
+                for (item in showCandidates) item.text = item.text.lowercase()
+                composition = composition.lowercase()
+            }
         }
-        var count = compositionText.count { it in '1'..'9' }
-        pinyins =
-            if (count > 0) {
+        val rimeSchema = Rime.getCurrentRimeSchema()
+        pinyins = when (rimeSchema) {
+            CustomConstant.SCHEMA_ZH_T9 -> {
+                var count = compositionText.count { it in '1'..'9' }
                 val remainT9Keys = ArrayList<InputKey>(count)
                 keyRecordStack.forEachReversed { inputKey ->
                     if (inputKey is InputKey.T9Key) {
@@ -204,11 +213,22 @@ object RimeEngine {
                         }
                     }
                 }
-                val t9Input = remainT9Keys.joinToString("").reversed()
-                T9PinYinUtils.t9KeyToPinyin(t9Input)
-            } else {
+                T9PinYinUtils.t9KeyToPinyin(remainT9Keys.joinToString("").reversed())
+            }
+            CustomConstant.SCHEMA_ZH_DOUBLE_LX17 -> {
+                var count = compositionText.count { it in 'a'..'z' }
+                val keys = ArrayList<InputKey>(count)
+                keyRecordStack.forEachReversed { inputKey ->
+                    if (inputKey is InputKey.QwertKey) {
+                        if (count-- > 0) keys.add(inputKey)
+                    }
+                }
+                LX17PinYinUtils.lx17KeyToPinyin(keys.joinToString("").reversed())
+            }
+            else -> {
                 emptyArray()
             }
+        }
         showComposition = composition
         preCommitText = ""
         return null
@@ -218,24 +238,7 @@ object RimeEngine {
      * 拿到候选词拼音组合
      */
     fun getPrefixs(): Array<String> {
-        var count = Rime.compositionText.count { it in '1'..'9' }
-        val pyCandidates =
-            if (count > 0) {
-                val remainT9Keys = ArrayList<InputKey>(count)
-                keyRecordStack.forEachReversed { inputKey ->
-                    if (inputKey is InputKey.T9Key) {
-                        inputKey.consumed = count-- <= 0
-                        if (!inputKey.consumed) {
-                            remainT9Keys.add(inputKey)
-                        }
-                    }
-                }
-                val t9Input = remainT9Keys.joinToString("").reversed()
-                T9PinYinUtils.t9KeyToPinyin(t9Input)
-            } else {
-                emptyArray()
-            }
-        return pyCandidates
+        return pinyins
     }
 
     private fun getCurrentComposition(candidates: List<CandidateListItem>): String {
@@ -246,7 +249,7 @@ object RimeEngine {
         if(candidates.isEmpty()) return composition
         val comment = candidates.first().comment
         val result =  when {
-            comment.isBlank() || comment.contains("☯") || comment.startsWith("~")-> composition
+            comment.isNotBlank() && comment.startsWith("~") -> composition
             rimeSchema == CustomConstant.SCHEMA_ZH_T9 -> {
                 T9PinYinUtils.getT9Composition(composition, comment)
             }

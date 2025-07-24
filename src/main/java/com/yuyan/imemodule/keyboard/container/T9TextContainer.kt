@@ -43,7 +43,7 @@ import splitties.views.dsl.core.margin
  * 与数字键盘容器[NumberContainer]类似。
  */
 @SuppressLint("ViewConstructor")
-class T9TextContainer(context: Context?, inputView: InputView) : InputBaseContainer(context, inputView) {
+open class T9TextContainer(context: Context?, inputView: InputView) : InputBaseContainer(context, inputView) {
     private val mSideSymbolsPinyin:List<SideSymbol>
     // 键盘、候选词界面上符号(T9左侧、手写右侧)、候选拼音ListView
     private val mRVLeftPrefix : SwipeRecyclerView = inflate(getContext(), R.layout.sdk_view_rv_prefix, null) as SwipeRecyclerView
@@ -84,8 +84,16 @@ class T9TextContainer(context: Context?, inputView: InputView) : InputBaseContai
     }
 
     // 更新键盘上侧边符号列表
-    protected fun updateKeyboardView() {
-        val prefixLayoutParams = createLayoutParams()
+    private fun updateKeyboardView() {
+        val softKeyboard = mMajorView!!.getSoftKeyboard()
+        val softKeySymbolHolder = softKeyboard.getKeyByCode(InputModeSwitcherManager.USER_DEF_KEYCODE_LEFT_SYMBOL_12) ?: return
+        val prefixLayoutParams = LayoutParams(softKeySymbolHolder.width(), LayoutParams.MATCH_PARENT)
+        prefixLayoutParams.setMargins(
+            softKeyboard.keyXMargin,
+            softKeySymbolHolder.mTop + softKeyboard.keyYMargin,
+            softKeyboard.keyXMargin,
+            EnvironmentSingleton.instance.skbHeight - softKeySymbolHolder.mBottom + softKeyboard.keyYMargin
+        )
         val prefixLayoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         mRVLeftPrefix.setLayoutManager(prefixLayoutManager)
         if (mRVLeftPrefix.parent != null) {
@@ -94,22 +102,6 @@ class T9TextContainer(context: Context?, inputView: InputView) : InputBaseContai
         }
         addView(mRVLeftPrefix, prefixLayoutParams)
         updateSymbolListView()
-    }
-
-    private fun createLayoutParams(): LayoutParams {
-        val softKeyboard = mMajorView!!.getSoftKeyboard()
-        val softKeySymbolHolder =
-            softKeyboard.getKeyByCode(InputModeSwitcherManager.USER_DEF_KEYCODE_LEFT_SYMBOL_12)
-        val prefixLayoutParams = LayoutParams(
-            softKeySymbolHolder!!.width(), LayoutParams.MATCH_PARENT
-        )
-        prefixLayoutParams.setMargins(
-            softKeyboard.keyXMargin,
-            softKeySymbolHolder.mTop + softKeyboard.keyYMargin,
-            softKeyboard.keyXMargin,
-            EnvironmentSingleton.instance.skbHeight - softKeySymbolHolder.mBottom + softKeyboard.keyYMargin
-        )
-        return prefixLayoutParams
     }
 
     //更新符号显示,九宫格左侧符号栏
@@ -131,9 +123,9 @@ class T9TextContainer(context: Context?, inputView: InputView) : InputBaseContai
         mRVLeftPrefix.setOnItemClickListener{ _: View?, position: Int ->
             if (!isPrefixs) {
                 val symbol = mSideSymbolsPinyin.map { it.symbolValue }[position]
-                val softKey = SoftKey(symbol)
+                val softKey = SoftKey(label = symbol)
                 // 播放按键声音和震动
-                DevicesUtils.tryPlayKeyDown(softKey)
+                DevicesUtils.tryPlayKeyDown()
                 DevicesUtils.tryVibrate(this)
                 inputView.responseKeyEvent(softKey)
             } else {

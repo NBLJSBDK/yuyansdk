@@ -5,7 +5,6 @@ import com.yuyan.imemodule.BuildConfig
 
 /**
  * 日志管理工具
- * Created by CS-1113 on 2017/8/16.
  */
 object LogUtil {
     private var DEBUG = BuildConfig.DEBUG

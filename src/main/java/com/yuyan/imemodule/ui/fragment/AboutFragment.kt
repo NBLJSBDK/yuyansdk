@@ -21,7 +21,7 @@ class AboutFragment : PreferenceFragmentCompat() {
             addPreference(R.string.source_code, R.string.github_repo) {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(CustomConstant.YUYAN_IME_REPO)))
             }
-            addPreference(R.string.license, "LGPL-2.1-or-later") {
+            addPreference(R.string.license, " GPL-3.0 license ") {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(CustomConstant.LICENSE_URL)))
             }
             addCategory(R.string.app_version) {
@@ -40,12 +40,6 @@ class AboutFragment : PreferenceFragmentCompat() {
             }
             addCategory(R.string.sdk_version) {
                 isIconSpaceReserved = false
-                addPreference(R.string.build_git_hash, BuildConfig.SdkCommitHead) {
-                    val commit = BuildConfig.SdkCommitHead.substringBefore('-')
-                    val uri = Uri.parse("${CustomConstant.YUYAN_SDK_REPO}/commit/${commit}")
-                    startActivity(Intent(Intent.ACTION_VIEW, uri))
-                }
-                addPreference(R.string.build_time, BuildConfig.AppBuildTime)
                 addPreference(R.string.build_type, if(BuildConfig.offline)R.string.build_type_offline else R.string.build_type_online )
             }
         }

@@ -8,9 +8,6 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 
-/**
- * Created by  kongxr on 2018/7/10
- */
 class ThreadPoolUtils private constructor() {
 
     companion object {

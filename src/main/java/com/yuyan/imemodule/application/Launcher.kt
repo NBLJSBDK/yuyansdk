@@ -1,35 +1,25 @@
 package com.yuyan.imemodule.application
 
-import android.app.Application
+import android.annotation.SuppressLint
 import android.content.Context
-import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
 import com.yuyan.imemodule.data.emojicon.YuyanEmojiCompat
 import com.yuyan.imemodule.data.theme.ThemeManager
-import com.yuyan.imemodule.data.theme.ThemeManager.onSystemDarkModeChange
 import com.yuyan.imemodule.data.theme.ThemeManager.prefs
 import com.yuyan.imemodule.database.DataBaseKT
 import com.yuyan.imemodule.prefs.AppPrefs
 import com.yuyan.imemodule.service.ClipboardHelper
-import com.yuyan.imemodule.utils.isDarkMode
 import com.yuyan.imemodule.utils.AssetUtils.copyFileOrDir
 import com.yuyan.imemodule.utils.thread.ThreadPoolUtils
 import com.yuyan.inputmethod.core.Kernel
 
-open class ImeSdkApplication : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        mInstance = this
-        initData()
-    }
+class Launcher {
+    lateinit var context: Context
+        private set
 
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        onSystemDarkModeChange(newConfig.isDarkMode())
-    }
-
-    private fun initData() {
+    fun initData(context: Context) {
+        this.context = context
         currentInit()
         onInitDataChildThread()
     }
@@ -46,7 +36,15 @@ open class ImeSdkApplication : Application() {
      */
     private fun onInitDataChildThread() {
         ThreadPoolUtils.executeSingleton {
-            imeInit()
+            // 复制词库文件
+            val dataDictVersion = AppPrefs.getInstance().internal.dataDictVersion.getValue()
+            if (dataDictVersion < CustomConstant.CURRENT_RIME_DICT_DATA_VERSIOM) {
+                //rime词库
+                copyFileOrDir(context, "rime", "", CustomConstant.RIME_DICT_PATH, true)
+                AppPrefs.getInstance().internal.dataDictVersion.setValue(CustomConstant.CURRENT_RIME_DICT_DATA_VERSIOM)
+            }
+            Kernel.resetIme()  // 解决词库复制慢，导致先调用初始化问题
+            YuyanEmojiCompat.init(context)
             //初始化键盘主题
             val isFollowSystemDayNight = prefs.followSystemDayNightTheme.getValue()
             if (isFollowSystemDayNight) {
@@ -55,22 +53,8 @@ open class ImeSdkApplication : Application() {
         }
     }
 
-    private fun imeInit() {
-        // 复制词库文件
-        val dataDictVersion = AppPrefs.getInstance().internal.dataDictVersion.getValue()
-        if (dataDictVersion < CustomConstant.CURRENT_RIME_DICT_DATA_VERSIOM) {
-            //rime词库
-            copyFileOrDir(context, "rime", "", CustomConstant.RIME_DICT_PATH, true)
-            AppPrefs.getInstance().internal.dataDictVersion.setValue(CustomConstant.CURRENT_RIME_DICT_DATA_VERSIOM)
-        }
-        Kernel.resetIme()  // 解决词库复制慢，导致先调用初始化问题
-        YuyanEmojiCompat.init(context)
-    }
-
     companion object {
-        private var mInstance: Application? = null
-        @JvmStatic
-        val context: Context
-            get() = mInstance!!.applicationContext
+        @SuppressLint("StaticFieldLeak")
+        val instance = Launcher()
     }
 }

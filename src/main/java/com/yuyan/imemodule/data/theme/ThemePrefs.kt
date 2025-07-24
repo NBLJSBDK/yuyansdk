@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import com.yuyan.imemodule.R
 import com.yuyan.imemodule.prefs.ManagedPreferenceCategory
 import com.yuyan.imemodule.prefs.behavior.KeyboardSymbolSlideUpMod
+import com.yuyan.imemodule.prefs.behavior.SkbStyleMode
 import com.yuyan.imemodule.view.preference.ManagedPreference
 
 class ThemePrefs(sharedPreferences: SharedPreferences) :
@@ -37,6 +38,23 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     ).also {
         it.register()
     }
+
+    val skbStyleMode = list(
+        R.string.keyboard_style_mod,
+        "keyboard_style_mod",
+        SkbStyleMode.Yuyan,
+        SkbStyleMode,
+        listOf(
+            SkbStyleMode.Yuyan,
+            SkbStyleMode.Google,
+            SkbStyleMode.Samsung
+        ),
+        listOf(
+            R.string.keyboard_style_mod_yuyan,
+            R.string.keyboard_style_mod_google,
+            R.string.keyboard_style_mod_samsung,
+        )
+    )
 
     val followSystemDayNightTheme = switch(
         R.string.follow_system_day_night_theme,

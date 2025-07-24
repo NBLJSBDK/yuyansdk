@@ -4,11 +4,11 @@ package com.yuyan.imemodule.ui.activity
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.yuyan.imemodule.R
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 
 class SettingsViewModel : ViewModel() {
 
-    val toolbarTitle = MutableLiveData(ImeSdkApplication.context.getString(R.string.input_methods))
+    val toolbarTitle = MutableLiveData(Launcher.instance.context.getString(R.string.input_methods))
 
     val toolbarShadow = MutableLiveData(true)
 

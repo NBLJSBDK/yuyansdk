@@ -10,6 +10,8 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.view.inputmethod.EditorInfo
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -39,7 +41,6 @@ import com.yuyan.imemodule.utils.DevicesUtils
 import com.yuyan.imemodule.utils.KeyboardLoaderUtil
 import com.yuyan.imemodule.utils.StringUtils
 import com.yuyan.imemodule.view.CandidatesBar
-import com.yuyan.imemodule.view.ComposingView
 import com.yuyan.imemodule.view.EditPhrasesView
 import com.yuyan.imemodule.view.FullDisplayKeyboardBar
 import com.yuyan.imemodule.keyboard.container.CandidatesContainer
@@ -73,7 +74,6 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
     private var service: ImeService
     private var mImeState = ImeState.STATE_IDLE // 当前的输入法状态
     private var mChoiceNotifier = ChoiceNotifier()
-    private var mComposingView: ComposingView // 组成字符串的View，用于显示输入的拼音。
     var mSkbRoot: RelativeLayout
     var mSkbCandidatesBarView: CandidatesBar //候选词栏根View
     private var mHoderLayoutLeft: LinearLayout
@@ -81,6 +81,7 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
     private lateinit var mOnehandHoderLayout: LinearLayout
     var mAddPhrasesLayout: EditPhrasesView
     private var mLlKeyboardBottomHolder: LinearLayout
+    private var mInputKeyboardContainer: RelativeLayout
     private lateinit var mRightPaddingKey: ManagedPreference.PInt
     private lateinit var mBottomPaddingKey: ManagedPreference.PInt
     private var mFullDisplayKeyboardBar:FullDisplayKeyboardBar? = null
@@ -95,14 +96,10 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
         mSkbCandidatesBarView = mSkbRoot.findViewById(R.id.candidates_bar)
         mHoderLayoutLeft = mSkbRoot.findViewById(R.id.ll_skb_holder_layout_left)
         mHoderLayoutRight = mSkbRoot.findViewById(R.id.ll_skb_holder_layout_right)
+        mInputKeyboardContainer = mSkbRoot.findViewById(R.id.ll_input_keyboard_container)
         mAddPhrasesLayout = EditPhrasesView(context)
         KeyboardManager.instance.setData(mSkbRoot.findViewById(R.id.skb_input_keyboard_view), this)
         mLlKeyboardBottomHolder =  mSkbRoot.findViewById(R.id.iv_keyboard_holder)
-        mComposingView = ComposingView(context)
-        addView(mComposingView,  LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-            addRule(ABOVE, mSkbRoot.id)
-            addRule(ALIGN_LEFT, mSkbRoot.id)
-        })
         val root = PopupComponent.get().root
         val viewParent = root.parent
         if (viewParent != null) {
@@ -147,6 +144,7 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
         }
         mLlKeyboardBottomHolder.removeAllViews()
         mLlKeyboardBottomHolder.layoutParams.width = EnvironmentSingleton.instance.skbWidth
+        mInputKeyboardContainer.layoutParams.width = EnvironmentSingleton.instance.inputAreaWidth
         if(EnvironmentSingleton.instance.keyboardModeFloat){
             mBottomPaddingKey = (if(EnvironmentSingleton.instance.isLandscape) getInstance().internal.keyboardBottomPaddingLandscapeFloat
                 else getInstance().internal.keyboardBottomPaddingFloat)
@@ -245,7 +243,6 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
         val keyTextColor = ThemeManager.activeTheme.keyTextColor
         val backgrounde = ThemeManager.activeTheme.backgroundDrawable(ThemeManager.prefs.keyBorder.getValue())
         mSkbRoot.background = if(backgrounde is BitmapDrawable) backgrounde.bitmap.scale(EnvironmentSingleton.instance.skbWidth, EnvironmentSingleton.instance.inputAreaHeight).toDrawable(context.resources) else backgrounde
-        mComposingView.updateTheme(ThemeManager.activeTheme)
         mSkbCandidatesBarView.updateTheme(keyTextColor)
         if(::mOnehandHoderLayout.isInitialized) {
             (mOnehandHoderLayout[0] as ImageButton).drawable?.setTint(keyTextColor)
@@ -273,7 +270,7 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
      * 软键盘集装箱SkbContainer的responseKeyEvent（）在自身类中调用。
      */
     override fun responseKeyEvent(sKey: SoftKey) {
-        val keyCode = sKey.keyCode
+        val keyCode = sKey.code
         if (sKey.isKeyCodeKey) {  // 系统的keycode,单独处理
             mImeState = ImeState.STATE_INPUT
             val keyEvent = KeyEvent(0, 0, KeyEvent.ACTION_UP, keyCode, 0, 0, 0, 0, KeyEvent.FLAG_SOFT_KEYBOARD)
@@ -288,19 +285,27 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
                 (KeyboardManager.instance.currentContainer as? SymbolContainer)?.setSymbolsView()
             } else  if (InputModeSwitcherManager.USER_DEF_KEYCODE_EMOJI_4 == keyCode) {  // 点击表情按钮
                 onSettingsMenuClick(SkbMenuMode.Emojicon)
+            } else  if (InputModeSwitcherManager.USER_DEF_KEYCODE_SHIFT_1 == keyCode) {
+                if(InputModeSwitcherManager.isChineseT9){
+                    InputModeSwitcherManager.switchModeForUserKey(InputModeSwitcherManager.USER_DEF_KEYCODE_NUMBER_5)
+                } else  if(InputModeSwitcherManager.isNumberSkb){
+                    InputModeSwitcherManager.switchModeForUserKey(InputModeSwitcherManager.USER_DEF_KEYCODE_RETURN_6)
+                } else {
+                    InputModeSwitcherManager.switchModeForUserKey(keyCode)
+                }
             } else if ( keyCode in InputModeSwitcherManager.USER_DEF_KEYCODE_RETURN_6 .. InputModeSwitcherManager.USER_DEF_KEYCODE_SHIFT_1) {
                 InputModeSwitcherManager.switchModeForUserKey(keyCode)
             } else if ( keyCode in InputModeSwitcherManager.USER_DEF_KEYCODE_PASTE .. InputModeSwitcherManager.USER_DEF_KEYCODE_CUT) {
-                commitTestEditMenu(textEditMenuPreset[keyCode])
+                commitTextEditMenu(KeyPreset.textEditMenuPreset[keyCode])
             } else if ( keyCode == InputModeSwitcherManager.USER_DEF_KEYCODE_MOVE_START) {
                 service.setSelection(0, if(hasSelection) selEnd else 0)
             } else if ( keyCode == InputModeSwitcherManager.USER_DEF_KEYCODE_MOVE_END) {
                 if(hasSelection) {
                     val start =  selStart
-                    commitTestEditMenu(textEditMenuPreset[InputModeSwitcherManager.USER_DEF_KEYCODE_SELECT_ALL])
+                    commitTextEditMenu(KeyPreset.textEditMenuPreset[InputModeSwitcherManager.USER_DEF_KEYCODE_SELECT_ALL])
                     this.postDelayed(50) { service.setSelection(start, selEnd) }
                 } else {
-                    commitTestEditMenu(textEditMenuPreset[InputModeSwitcherManager.USER_DEF_KEYCODE_SELECT_ALL])
+                    commitTextEditMenu(KeyPreset.textEditMenuPreset[InputModeSwitcherManager.USER_DEF_KEYCODE_SELECT_ALL])
                     service.sendCombinationKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT)
                 }
             } else if ( keyCode == InputModeSwitcherManager.USER_DEF_KEYCODE_SELECT_MODE) {
@@ -309,7 +314,7 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
             } else if ( keyCode == InputModeSwitcherManager.USER_DEF_KEYCODE_SELECT_ALL) {
                 hasSelectionAll = !hasSelectionAll
                 if(!hasSelectionAll) service.sendCombinationKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT)
-                else commitTestEditMenu(textEditMenuPreset[keyCode])
+                else commitTextEditMenu(KeyPreset.textEditMenuPreset[keyCode])
             }else if(sKey.keyLabel.isNotBlank()){
                 if(SymbolPreset.containsKey(sKey.keyLabel))commitPairSymbol(sKey.keyLabel)
                 else commitText(sKey.keyLabel)
@@ -339,6 +344,9 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
                 else commitText(result.second)
             }
             PopupMenuMode.SwitchIME -> InputMethodUtil.showPicker()
+            PopupMenuMode.EMOJI -> {
+                onSettingsMenuClick(SkbMenuMode.Emojicon)
+            }
             PopupMenuMode.EnglishCell -> {
                 getInstance().input.abcSearchEnglishCell.setValue(!getInstance().input.abcSearchEnglishCell.getValue())
                 KeyboardManager.instance.switchKeyboard()
@@ -380,7 +388,7 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
         val englishCellDisable = InputModeSwitcherManager.isEnglish && !getInstance().input.abcSearchEnglishCell.getValue()
         val result = if(englishCellDisable){
             processEnglishKey(event)
-        } else if (!InputModeSwitcherManager.mInputTypePassword &&(InputModeSwitcherManager.isEnglish || InputModeSwitcherManager.isChinese)) { // 中文、英语输入模式
+        } else if (InputModeSwitcherManager.isEnglish || InputModeSwitcherManager.isChinese) { // 中文、英语输入模式
             processInput(event)
         } else { // 数字、符号处理
             processEnglishKey(event)
@@ -453,10 +461,6 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
                 chooseAndUpdate()
             }
             return  true
-        }else if (keyCode == KeyEvent.KEYCODE_DEL && (InputModeSwitcherManager.mInputTypePassword || InputModeSwitcherManager.isNumberSkb)) {
-            sendKeyEvent(keyCode)
-            if(mImeState != ImeState.STATE_IDLE) resetToIdleState()
-            return true
         }
         return false
     }
@@ -468,11 +472,7 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
         val keyCode = event.keyCode
         val keyChar = event.unicodeChar
         val lable = keyChar.toChar().toString()
-        if (Character.isLetterOrDigit(keyChar) || keyCode == KeyEvent.KEYCODE_APOSTROPHE || keyCode == KeyEvent.KEYCODE_SEMICOLON){
-            DecodingInfo.inputAction(event)
-            updateCandidate()
-            return true
-        } else if (keyCode == KeyEvent.KEYCODE_DEL) {
+        if (keyCode == KeyEvent.KEYCODE_DEL) {
             if (DecodingInfo.isFinish || DecodingInfo.isAssociate) {
                 sendKeyEvent(keyCode)
                 if(mImeState != ImeState.STATE_IDLE) resetToIdleState()
@@ -480,6 +480,10 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
                 DecodingInfo.deleteAction()
                 updateCandidate()
             }
+            return true
+        } else if ((Character.isLetterOrDigit(keyChar) && keyCode != KeyEvent.KEYCODE_0) || keyCode == KeyEvent.KEYCODE_APOSTROPHE || keyCode == KeyEvent.KEYCODE_SEMICOLON){
+            DecodingInfo.inputAction(event)
+            updateCandidate()
             return true
         } else if (keyCode != 0) {
             if (!DecodingInfo.isCandidatesListEmpty && !DecodingInfo.isAssociate) {
@@ -504,7 +508,6 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
      */
     fun resetToIdleState() {
         resetCandidateWindow()
-        mComposingView.setDecodingInfo()
         if(hasSelectionAll) hasSelectionAll = false
         mImeState = ImeState.STATE_IDLE
     }
@@ -514,7 +517,6 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
      */
     private fun resetToPredictState() {
         resetCandidateWindow()
-        mComposingView.setDecodingInfo()
         mImeState = ImeState.STATE_PREDICT
     }
 
@@ -565,7 +567,6 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
      */
     fun updateCandidateBar() {
         mSkbCandidatesBarView.showCandidates()
-        mComposingView.setDecodingInfo()
     }
 
     /**
@@ -592,7 +593,7 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
             if (level == 0) {
                 onSettingsMenuClick(SkbMenuMode.CandidatesMore)
             } else {
-                KeyboardManager.instance.switchKeyboard(InputModeSwitcherManager.skbImeLayout)
+                KeyboardManager.instance.switchKeyboard()
                 (KeyboardManager.instance.currentContainer as? T9TextContainer)?.updateSymbolListView()
             }
         }
@@ -603,7 +604,7 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
 
         override fun onClickClearCandidate() {
             if(mImeState != ImeState.STATE_IDLE) resetToIdleState()
-            KeyboardManager.instance.switchKeyboard(InputModeSwitcherManager.skbImeLayout)
+            KeyboardManager.instance.switchKeyboard()
         }
 
         override fun onClickClearClipBoard() {
@@ -713,8 +714,15 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
     /**
      * 发送成对符号给编辑框
      */
-    private fun commitTestEditMenu(id:Int?) {
-        if(id != null)service.commitTestEditMenu(id)
+    private fun commitTextEditMenu(id:Int?) {
+        if(id != null)service.commitTextEditMenu(id)
+    }
+
+    /**
+     * 发送指令给编辑框
+     */
+    fun performEditorAction(editorAction:Int) {
+        service.performEditorAction(editorAction)
     }
 
 
@@ -736,7 +744,13 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
     private fun initNavbarBackground(service: ImeService) {
         service.window.window!!.also {
             WindowCompat.setDecorFitsSystemWindows(it, false)
-            it.navigationBarColor = Color.TRANSPARENT
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R){
+                @Suppress("DEPRECATION")
+                it.navigationBarColor = Color.TRANSPARENT
+            } else {
+                it.insetsController?.hide(WindowInsets.Type.navigationBars())
+                it.insetsController?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) it.isNavigationBarContrastEnforced = false
         }
         ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
@@ -753,6 +767,7 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
     fun onStartInputView(editorInfo: EditorInfo, restarting: Boolean) {
         InputModeSwitcherManager.requestInputWithSkb(editorInfo)
         KeyboardManager.instance.switchKeyboard()
+        resetToIdleState()
         if(!restarting) {
             if (getInstance().clipboard.clipboardSuggestion.getValue()) {
                 val lastClipboardTime = getInstance().internal.clipboardUpdateTime.getValue()
@@ -782,8 +797,12 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
 
     private var selStart = 0
     private var selEnd = 0
-    fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int) {
-        selStart = newSelStart; selEnd = newSelEnd
+    private var oldCandidatesEnd = 0
+    fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesEnd: Int) {
+        if(oldCandidatesEnd == candidatesEnd && InputModeSwitcherManager.isEnglish && !DecodingInfo.isCandidatesListEmpty && !DecodingInfo.isAssociate){
+            service.finishComposingText()
+            resetToPredictState()
+        }
         if(oldSelStart != oldSelEnd || newSelStart != newSelEnd)return
         if ((chinesePrediction && InputModeSwitcherManager.isChinese && mImeState != ImeState.STATE_IDLE) || InputModeSwitcherManager.isNumberSkb) {
             val textBeforeCursor = service.getTextBeforeCursor(100)
@@ -802,5 +821,6 @@ class InputView(context: Context, service: ImeService) : LifecycleRelativeLayout
                 }
             }
         }
+        selStart = newSelStart; selEnd = newSelEnd;oldCandidatesEnd = candidatesEnd
     }
 }

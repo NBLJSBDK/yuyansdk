@@ -1,6 +1,6 @@
 package com.yuyan.imemodule.keyboard
 
-import com.yuyan.imemodule.application.ImeSdkApplication
+import com.yuyan.imemodule.application.Launcher
 import com.yuyan.imemodule.manager.InputModeSwitcherManager
 import com.yuyan.imemodule.keyboard.container.BaseContainer
 import com.yuyan.imemodule.keyboard.container.CandidatesContainer
@@ -50,7 +50,7 @@ class KeyboardManager {
             else -> KeyboardType.T9
         }
         switchKeyboard(keyboardName)
-        mInputView.updateCandidateBar()
+        if (::mInputView.isInitialized)mInputView.updateCandidateBar()
     }
 
     fun switchKeyboard(keyboardName: KeyboardType) {
@@ -58,17 +58,17 @@ class KeyboardManager {
         var container = keyboards[keyboardName]
         if (container == null) {
             container = when (keyboardName) {
-                KeyboardType.CANDIDATES ->  CandidatesContainer(ImeSdkApplication.context, mInputView)
-                KeyboardType.HANDWRITING -> HandwritingContainer(ImeSdkApplication.context, mInputView)
-                KeyboardType.NUMBER -> NumberContainer(ImeSdkApplication.context, mInputView)
-                KeyboardType.QWERTY -> QwertyContainer(ImeSdkApplication.context, mInputView, InputModeSwitcherManager.MASK_SKB_LAYOUT_QWERTY_PINYIN)
-                KeyboardType.SETTINGS -> SettingsContainer(ImeSdkApplication.context, mInputView)
-                KeyboardType.SYMBOL -> SymbolContainer(ImeSdkApplication.context, mInputView)
-                KeyboardType.QWERTYABC -> QwertyContainer(ImeSdkApplication.context, mInputView, InputModeSwitcherManager.MASK_SKB_LAYOUT_QWERTY_ABC)
-                KeyboardType.LX17 -> QwertyContainer(ImeSdkApplication.context, mInputView, InputModeSwitcherManager.MASK_SKB_LAYOUT_LX17)
-                KeyboardType.ClipBoard -> ClipBoardContainer(ImeSdkApplication.context, mInputView)
-                KeyboardType.TEXTEDIT -> QwertyContainer(ImeSdkApplication.context, mInputView, InputModeSwitcherManager.MASK_SKB_LAYOUT_TEXTEDIT)
-                else ->  T9TextContainer(ImeSdkApplication.context, mInputView)
+                KeyboardType.CANDIDATES ->  CandidatesContainer(Launcher.instance.context, mInputView)
+                KeyboardType.HANDWRITING -> HandwritingContainer(Launcher.instance.context, mInputView)
+                KeyboardType.NUMBER -> NumberContainer(Launcher.instance.context, mInputView)
+                KeyboardType.QWERTY -> QwertyContainer(Launcher.instance.context, mInputView, InputModeSwitcherManager.MASK_SKB_LAYOUT_QWERTY_PINYIN)
+                KeyboardType.SETTINGS -> SettingsContainer(Launcher.instance.context, mInputView)
+                KeyboardType.SYMBOL -> SymbolContainer(Launcher.instance.context, mInputView)
+                KeyboardType.QWERTYABC -> QwertyContainer(Launcher.instance.context, mInputView, InputModeSwitcherManager.MASK_SKB_LAYOUT_QWERTY_ABC)
+                KeyboardType.LX17 -> QwertyContainer(Launcher.instance.context, mInputView, InputModeSwitcherManager.MASK_SKB_LAYOUT_LX17)
+                KeyboardType.ClipBoard -> ClipBoardContainer(Launcher.instance.context, mInputView)
+                KeyboardType.TEXTEDIT -> QwertyContainer(Launcher.instance.context, mInputView, InputModeSwitcherManager.MASK_SKB_LAYOUT_TEXTEDIT)
+                else ->  T9TextContainer(Launcher.instance.context, mInputView)
             }
             container.updateSkbLayout()
             keyboards[keyboardName] = container

@@ -9,6 +9,7 @@ import android.os.Message
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.inputmethod.EditorInfo
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
@@ -40,6 +41,7 @@ import splitties.views.dsl.constraintlayout.lParams
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
+import kotlin.math.max
 import kotlin.random.Random
 
 
@@ -124,11 +126,11 @@ class SymbolContainer(context: Context, inputView: InputView) : BaseContainer(co
             when (motionEvent.action) {
                 MotionEvent.ACTION_DOWN -> {
                     // 播放按键声音和震动
-                    DevicesUtils.tryPlayKeyDown(SoftKey(KeyEvent.KEYCODE_DEL))
+                    DevicesUtils.tryPlayKeyDown(KeyEvent.KEYCODE_DEL)
                     DevicesUtils.tryVibrate(this)
                 }
                 MotionEvent.ACTION_UP -> {
-                    KeyboardManager.instance.switchKeyboard(InputModeSwitcherManager.skbImeLayout)
+                    KeyboardManager.instance.switchKeyboard()
                 }
             }
             true
@@ -137,7 +139,7 @@ class SymbolContainer(context: Context, inputView: InputView) : BaseContainer(co
             when (motionEvent.action) {
                 MotionEvent.ACTION_DOWN -> {
                     // 播放按键声音和震动
-                    DevicesUtils.tryPlayKeyDown(SoftKey(KeyEvent.KEYCODE_DEL))
+                    DevicesUtils.tryPlayKeyDown(KeyEvent.KEYCODE_DEL)
                     DevicesUtils.tryVibrate(this)
                     if(isLockSymbol) {
                         mHandler?.sendEmptyMessageDelayed(MSG_REPEAT, REPEAT_START_DELAY)
@@ -166,24 +168,28 @@ class SymbolContainer(context: Context, inputView: InputView) : BaseContainer(co
 
     private fun onItemClickOperate(value: String) {
         val result = value.replace("[ \\r]".toRegex(), "")
-        val softKey = SoftKey(result)
-        DevicesUtils.tryPlayKeyDown(softKey)
+        val softKey = SoftKey(label = result)
+        DevicesUtils.tryPlayKeyDown()
         DevicesUtils.tryVibrate(this)
         if (mShowType == SymbolMode.Symbol) {  // 非表情键盘
             DataBaseKT.instance.usedSymbolDao().insert(UsedSymbol(symbol = result))
-            if(!isLockSymbol) KeyboardManager.instance.switchKeyboard(InputModeSwitcherManager.skbImeLayout)
+            val num = max(DataBaseKT.instance.usedSymbolDao().getCount("symbol") - 50, 0)
+            DataBaseKT.instance.usedSymbolDao().deleteOldest("symbol", num)
+            if(!isLockSymbol) KeyboardManager.instance.switchKeyboard()
             inputView.responseKeyEvent(softKey)
         } else {  //表情、颜文字
             if(!YuyanEmojiCompat.isWeChatInput || mVPSymbolsView.currentItem != 1 ) {
                 DataBaseKT.instance.usedSymbolDao().insert(UsedSymbol(symbol = result, type = "emoji"))
+                val num = max(DataBaseKT.instance.usedSymbolDao().getCount("emoji") - 50, 0)
+                DataBaseKT.instance.usedSymbolDao().deleteOldest("emoji", num)
                 inputView.responseKeyEvent(softKey)
             } else {
                 val emojions = EmojiconData.wechatEmojiconData[value]
                 if(emojions?.isNotEmpty() == true) {
                     CoroutineScope(Dispatchers.Main).launch {
                         emojions[Random.nextInt(emojions.size)].forEach {
-                            inputView.responseKeyEvent(SoftKey(it))
-                            inputView.responseKeyEvent(SoftKey(KeyEvent.KEYCODE_ENTER))
+                            inputView.responseKeyEvent(SoftKey(label = it))
+                            inputView.performEditorAction(EditorInfo.IME_ACTION_SEND)
                             delay(100)
                         }
                     }

@@ -2,9 +2,6 @@ package com.yuyan.imemodule.libs.recyclerview.touch;
 
 import androidx.recyclerview.widget.RecyclerView;
 
-/**
- * Created by Yolanda on 2016/4/19.
- */
 public interface OnItemMoveListener {
 
     /**
