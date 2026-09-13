@@ -31,14 +31,11 @@ class CrashHandler private constructor() : Thread.UncaughtExceptionHandler {
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
-        if (!handleException(throwable) && mDefaultHandler != null) {
-            mDefaultHandler!!.uncaughtException(thread, throwable)
+        handleException(throwable)
+        val handler = mDefaultHandler
+        if (handler != null) {
+            handler.uncaughtException(thread, throwable)
         } else {
-            try {
-                Thread.sleep(2000)
-            } catch (e: InterruptedException) {
-                e.printStackTrace()
-            }
             android.os.Process.killProcess(android.os.Process.myPid())
             exitProcess(1)
         }

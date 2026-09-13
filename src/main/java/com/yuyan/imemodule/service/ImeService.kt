@@ -42,10 +42,13 @@ class ImeService : InputMethodService() {
     private var isSoftKeyboard = false
     private lateinit var mInputView: InputView
     private lateinit var mCandidateView: CandidateView
-    private val onThemeChangeListener = OnThemeChangeListener { _: Theme? -> if (isHardwareKeyboard) mCandidateView.updateTheme() else mInputView.updateTheme()}
+    private val onThemeChangeListener = OnThemeChangeListener { _: Theme? ->
+        if (isHardwareKeyboard && ::mCandidateView.isInitialized) mCandidateView.updateTheme()
+        else if (isSoftKeyboard && ::mInputView.isInitialized) mInputView.updateTheme()
+    }
     private val clipboardUpdateContent = getInstance().internal.clipboardUpdateContent
     private val clipboardUpdateContentListener = ManagedPreference.OnChangeListener<String> { _, value ->
-        if(isSoftKeyboard && getInstance().clipboard.clipboardSuggestion.getValue()){
+        if(isSoftKeyboard && ::mInputView.isInitialized && getInstance().clipboard.clipboardSuggestion.getValue()){
             if(value.isNotBlank()) {
                 if(KeyboardManager.instance.currentContainer is ClipBoardContainer
                     && (KeyboardManager.instance.currentContainer as ClipBoardContainer).getMenuMode() == SkbMenuMode.ClipBoard ){
@@ -79,12 +82,12 @@ class ImeService : InputMethodService() {
     override fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
         YuyanEmojiCompat.setEditorInfo(editorInfo)
         handleHardwareKeyboard()
-        if (isHardwareKeyboard)mCandidateView.onStartInput(editorInfo, restarting)
+        if (isHardwareKeyboard && ::mCandidateView.isInitialized)mCandidateView.onStartInput(editorInfo, restarting)
         super.onStartInput(editorInfo, restarting)
     }
 
     override fun onStartInputView(editorInfo: EditorInfo, restarting: Boolean) {
-        if (isSoftKeyboard)mInputView.onStartInputView(editorInfo, restarting)
+        if (isSoftKeyboard && ::mInputView.isInitialized)mInputView.onStartInputView(editorInfo, restarting)
         super.onStartInputView(editorInfo, restarting)
     }
 
@@ -107,7 +110,7 @@ class ImeService : InputMethodService() {
                 KeyboardLoaderUtil.instance.clearKeyboardMap()
                 KeyboardManager.instance.clearKeyboard()
                 KeyboardManager.instance.switchKeyboard()
-            } else if(isHardwareKeyboard){
+            } else if(isHardwareKeyboard && ::mCandidateView.isInitialized){
                 mCandidateView.initView()
             }
         }
@@ -118,16 +121,16 @@ class ImeService : InputMethodService() {
         // 0 != event.getRepeatCount()  长按物理按键或 Shift/Meta/Ctrl的组合按键时，交由系统处理;有个特殊组合键：Ctrl+SPACE切换语言
         return if (0 != event.repeatCount || event.isShiftPressed || event.isMetaPressed) super.onKeyDown(keyCode, event)
         else if(event.isCtrlPressed && keyCode != KeyEvent.KEYCODE_SPACE)super.onKeyDown(keyCode, event)
-        else if (isSoftKeyboard) mInputView.processKeyDown(keyCode, event) || super.onKeyUp(keyCode, event)
-        else if (isHardwareKeyboard) mCandidateView.processKeyDown(keyCode, event) || super.onKeyUp(keyCode, event)
+        else if (isSoftKeyboard && ::mInputView.isInitialized) mInputView.processKeyDown(keyCode, event) || super.onKeyUp(keyCode, event)
+        else if (isHardwareKeyboard && ::mCandidateView.isInitialized) mCandidateView.processKeyDown(keyCode, event) || super.onKeyUp(keyCode, event)
         else super.onKeyDown(keyCode, event)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         return if (0 != event.repeatCount || event.isShiftPressed || event.isMetaPressed) super.onKeyDown(keyCode, event)
         else if(event.isCtrlPressed && keyCode != KeyEvent.KEYCODE_SPACE)super.onKeyDown(keyCode, event)
-        else if (isSoftKeyboard) mInputView.processKeyUp(event) || super.onKeyUp(keyCode, event)
-        else if (isHardwareKeyboard) mCandidateView.processKeyUp(event) || super.onKeyUp(keyCode, event)
+        else if (isSoftKeyboard && ::mInputView.isInitialized) mInputView.processKeyUp(event) || super.onKeyUp(keyCode, event)
+        else if (isHardwareKeyboard && ::mCandidateView.isInitialized) mCandidateView.processKeyUp(event) || super.onKeyUp(keyCode, event)
         else super.onKeyDown(keyCode, event)
     }
 
@@ -171,13 +174,13 @@ class ImeService : InputMethodService() {
 
     override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
-        if (isSoftKeyboard) mInputView.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesEnd)
+        if (isSoftKeyboard && ::mInputView.isInitialized) mInputView.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesEnd)
     }
 
     private val cursorAnchorPosition = FloatArray(2)
     override fun onUpdateCursorAnchorInfo(cursorAnchorInfo: CursorAnchorInfo?) {
         super.onUpdateCursorAnchorInfo(cursorAnchorInfo)
-        if (!isHardwareKeyboard || cursorAnchorInfo == null) return
+        if (!isHardwareKeyboard || cursorAnchorInfo == null || !::mCandidateView.isInitialized) return
         cursorAnchorPosition[0] = cursorAnchorInfo.insertionMarkerHorizontal
         cursorAnchorPosition[1] = cursorAnchorInfo.insertionMarkerBottom
         val matrix = cursorAnchorInfo.getMatrix()
@@ -188,12 +191,12 @@ class ImeService : InputMethodService() {
     }
 
     override fun onWindowShown() {
-        if (isSoftKeyboard) mInputView.onWindowShown()
+        if (isSoftKeyboard && ::mInputView.isInitialized) mInputView.onWindowShown()
         super.onWindowShown()
     }
 
     override fun onWindowHidden() {
-        if(isSoftKeyboard) mInputView.onWindowHidden()
+        if(isSoftKeyboard && ::mInputView.isInitialized) mInputView.onWindowHidden()
         super.onWindowHidden()
     }
 
@@ -201,7 +204,7 @@ class ImeService : InputMethodService() {
      * 模拟Enter按键点击
      */
     fun sendEnterKeyEvent() {
-        val inputConnection = getCurrentInputConnection()
+        val inputConnection = currentInputConnection ?: return
         YuyanEmojiCompat.mEditorInfo?.run {
             if (inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL || imeOptions.hasFlag(EditorInfo.IME_FLAG_NO_ENTER_ACTION)) {
                 sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
@@ -300,7 +303,7 @@ class ImeService : InputMethodService() {
         isSoftKeyboard = !hardwareKeyboard
         isHardwareKeyboard = hardwareKeyboard
         setCandidatesViewShown(isHardwareKeyboard)
-        currentInputConnection.requestCursorUpdates(if(isHardwareKeyboard)InputConnection.CURSOR_UPDATE_MONITOR else 0)
+        currentInputConnection?.requestCursorUpdates(if(isHardwareKeyboard)InputConnection.CURSOR_UPDATE_MONITOR else 0)
     }
 
 }

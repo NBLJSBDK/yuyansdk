@@ -10,8 +10,6 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsets
-import android.view.WindowInsetsController
 import android.view.inputmethod.EditorInfo
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -334,7 +332,10 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_APOSTROPHE, KeyEvent.KEYCODE_SPACE,
-            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_BACK -> return true
+            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DEL -> return true
+            // Android 13+ hands BACK to the system return arbiter. Consuming it in pre-IME
+            // dispatch can break edge-back arbitration and insets state during fast repeats.
+            KeyEvent.KEYCODE_BACK -> return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
         }
         return false
     }
@@ -376,10 +377,11 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
         return result
     }
 
-    // 系统按键只处理返回键，当点击返回键且软键盘显示时，隐藏键盘并消费事件
+    // Android 13+ lets the system return arbiter hide the IME; older versions keep the
+    // explicit hide behavior for compatibility.
     private fun processSystemKeys(event: KeyEvent): Boolean {
         return when (event.keyCode) {
-            KeyEvent.KEYCODE_BACK -> if (service.isInputViewShown) { requestHideSelf(); true } else false
+            KeyEvent.KEYCODE_BACK -> if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && service.isInputViewShown) { requestHideSelf(); true } else false
             else -> false
         }
     }
@@ -668,15 +670,8 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
     private fun initNavbarBackground(service: ImeService) {
         service.window.window?.also { win ->
             WindowCompat.setDecorFitsSystemWindows(win, false)
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-                @Suppress("DEPRECATION")
-                win.navigationBarColor = Color.TRANSPARENT
-            } else {
-                win.insetsController?.apply {
-                    hide(WindowInsets.Type.navigationBars())
-                    systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                }
-            }
+            @Suppress("DEPRECATION")
+            win.navigationBarColor = Color.TRANSPARENT
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) win.isNavigationBarContrastEnforced = false
         }
 
