@@ -9,7 +9,6 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import com.yuyan.imemodule.R
-import com.yuyan.imemodule.entity.keyboard.SoftKey
 import com.yuyan.imemodule.manager.InputModeSwitcher
 import com.yuyan.imemodule.prefs.AppPrefs
 import com.yuyan.imemodule.prefs.behavior.FullDisplayCenterMode
@@ -100,23 +99,27 @@ class FullDisplayKeyboardBar(context: Context?, inputView: InputView) : LinearLa
     private var lastEventX:Float = -1f
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(me: MotionEvent): Boolean {
-        var result = false
         val currentX = me.x
-        if (me.action == MotionEvent.ACTION_DOWN){
-            lastEventX = currentX
-            result = true
-        } else {
-            val relDiffX = abs(currentX - lastEventX)
-            val spaceSwipeMoveCursorSpeed = AppPrefs.getInstance().keyboardSetting.spaceSwipeMoveCursorSpeed.getValue()
-            if (relDiffX > spaceSwipeMoveCursorSpeed && mCenterModeMove) {  // 左右滑动
-                val key = SoftKey()
-                key.code = if (currentX < lastEventX) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
-                mInputView.responseKeyEvent(key)
+        return when (me.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
                 lastEventX = currentX
-                result = true
+                true
             }
+            MotionEvent.ACTION_MOVE -> {
+                val relDiffX = abs(currentX - lastEventX)
+                val spaceSwipeMoveCursorSpeed = AppPrefs.getInstance().keyboardSetting.spaceSwipeMoveCursorSpeed.getValue()
+                if (relDiffX > spaceSwipeMoveCursorSpeed && mCenterModeMove) {  // 左右滑动
+                    mInputView.responseCursorKeyEvent(if (currentX < lastEventX) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT)
+                    lastEventX = currentX
+                }
+                true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                lastEventX = -1f
+                true
+            }
+            else -> false
         }
-        return result
     }
 
 

@@ -233,6 +233,20 @@ class ImeService : InputMethodService() {
         if (alt) sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_ALT_LEFT)
     }
 
+    fun sendCursorKeyEvent(keyEventCode: Int, alt: Boolean = false, ctrl: Boolean = false, shift: Boolean = false): Boolean {
+        val inputConnection = currentInputConnection ?: return false
+        if (keyEventCode == KeyEvent.KEYCODE_DPAD_LEFT || keyEventCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            val surroundingText = if (keyEventCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                inputConnection.getTextBeforeCursor(1, 0)
+            } else {
+                inputConnection.getTextAfterCursor(1, 0)
+            }
+            if (surroundingText != null && surroundingText.isEmpty()) return false
+        }
+        sendCombinationKeyEvents(keyEventCode, alt, ctrl, shift)
+        return true
+    }
+
     fun sendDownKeyEvent(eventTime: Long, keyEventCode: Int, metaState: Int = 0) {
         currentInputConnection?.sendKeyEvent(
             KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyEventCode, 0, metaState,

@@ -326,6 +326,19 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
         }
     }
 
+    fun responseCursorKeyEvent(keyCode: Int) {
+        if (keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return
+        InputModeSwitcher.resetCharCase()
+        if (isAddPhrases) {
+            mAddPhrasesLayout.sendKeyEvent(keyCode)
+            return
+        }
+        if (!DecodingInfo.isCandidatesEmpty && !DecodingInfo.isAssociate) chooseAndUpdate()
+        service.sendCursorKeyEvent(keyCode, shift = hasSelection)
+        if (hasSelectionAll) hasSelectionAll = false
+        resetToIdleState()
+    }
+
 
     fun processKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode >= KeyEvent.KEYCODE_A && keyCode <= KeyEvent.KEYCODE_Z) return true

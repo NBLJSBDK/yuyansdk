@@ -235,7 +235,7 @@ open class BaseKeyboardView(mContext: Context?) : View(mContext) {
                 lastEventX = currentX
                 lastEventY = currentY
                 mAbortKey = true
-                mService!!.responseKeyEvent(SoftKey(code = if (distanceX > 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT))
+                mService!!.responseCursorKeyEvent(if (distanceX > 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT)
                 result = true
             }
         } else if(keyLableSmall?.isNotBlank() == true){
