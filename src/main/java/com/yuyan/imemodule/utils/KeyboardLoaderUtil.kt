@@ -338,7 +338,7 @@ class KeyboardLoaderUtil private constructor() {
                         InputModeSwitcher.USER_KEYCODE_LEFT_COMMA, KeyEvent.KEYCODE_SPACE, InputModeSwitcher.USER_KEYCODE_LEFT_PERIOD, InputModeSwitcher.USER_KEYCODE_NUMBER))
                 } else {
                     createQwertyKeys(arrayOf(InputModeSwitcher.USER_KEYCODE_SYMBOL, InputModeSwitcher.USER_KEYCODE_NUMBER,
-                            InputModeSwitcher.USER_KEYCODE_LEFT_PERIOD, KeyEvent.KEYCODE_SPACE, InputModeSwitcher.USER_KEYCODE_LANG))
+                            InputModeSwitcher.USER_KEYCODE_LEFT_COMMA, KeyEvent.KEYCODE_SPACE, InputModeSwitcher.USER_KEYCODE_LEFT_PERIOD, InputModeSwitcher.USER_KEYCODE_LANG))
                 }
             }
             InputModeSwitcher.MASK_SKB_LAYOUT_NUMBER -> {
@@ -415,9 +415,14 @@ class KeyboardLoaderUtil private constructor() {
                 t9Keys[0].widthF = 0.147f;t9Keys[1].widthF = 0.099f
                 t9Keys[2].widthF = 0.099f;t9Keys[3].widthF = 0.396f
                 t9Keys[4].widthF = 0.099f
+            } else if (t9Keys.size == 6) {
+                softKeyToggle.widthF = 0.147f
+                t9Keys[0].widthF = 0.147f;t9Keys[1].widthF = 0.099f
+                t9Keys[2].widthF = 0.099f;t9Keys[3].widthF = 0.297f
+                t9Keys[4].widthF = 0.099f;t9Keys[5].widthF = 0.099f
             } else {
-                t9Keys[0].widthF = 0.18f;t9Keys[1].widthF = 0.147f
-                t9Keys[2].widthF = 0.336f;t9Keys[3].widthF = 0.147f
+                t9Keys[0].widthF = 0.18f;t9Keys[1].widthF = 0.21f
+                t9Keys[2].widthF = 0.21f;t9Keys[3].widthF = 0.21f
             }
         }
         keyBeans.addAll(t9Keys)
