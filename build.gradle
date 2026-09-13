@@ -15,7 +15,7 @@ static def getAppGitHead() {
 }
 
 static def getAppBuildTime() {
-    return "git log -1 --pretty=%ai".execute().text.trim()
+    return new Date().format("yyyy-MM-dd HH:mm:ss Z", TimeZone.getTimeZone("GMT+8"))
 }
 
 
