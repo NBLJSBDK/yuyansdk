@@ -40,6 +40,9 @@ object RimeEngine {
         return Rime.getCurrentRimeSchema()
     }
 
+    val rawComposition: String
+        get() = Rime.compositionText
+
     /**
      * 是否输入完毕
      */

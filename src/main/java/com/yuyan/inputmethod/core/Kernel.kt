@@ -52,6 +52,10 @@ object Kernel {
     val wordsShowPinyin: String
         get() = RimeEngine.showComposition
 
+    // 获取引擎中的原始输入串
+    val rawComposition: String
+        get() = RimeEngine.rawComposition
+
     // 得到即将上屏的候选词
     val commitText: String
         get() = RimeEngine.preCommitText

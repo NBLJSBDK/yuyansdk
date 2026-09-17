@@ -141,7 +141,7 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
             }
             KeyEvent.KEYCODE_ENTER -> {
                 if (DecodingInfo.isCandidatesEmpty || DecodingInfo.isAssociate) sendKeyEvent(keyCode)
-                else commitDecInfoText(DecodingInfo.composingStrForCommit)
+                else commitDecInfoText(DecodingInfo.composingStrForEnter)
                 resetToIdleState()
                 true
             }

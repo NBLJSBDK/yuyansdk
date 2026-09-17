@@ -2,6 +2,7 @@ package com.yuyan.imemodule.service
 
 import android.view.KeyEvent
 import androidx.lifecycle.MutableLiveData
+import com.yuyan.imemodule.application.CustomConstant
 import com.yuyan.inputmethod.core.CandidateListItem
 import com.yuyan.inputmethod.core.Kernel
 
@@ -78,6 +79,18 @@ object DecodingInfo {
 
     val composingStrForDisplay: String   //获取显示的拼音字符串/
         get() = Kernel.wordsShowPinyin
+
+    val composingStrForEnter: String
+        get() {
+            val schema = Kernel.getCurrentRimeSchema()
+            return if (schema.startsWith(CustomConstant.SCHEMA_ZH_DOUBLE_FLYPY) &&
+                schema != CustomConstant.SCHEMA_ZH_DOUBLE_LX17
+            ) {
+                Kernel.rawComposition.replace("'", "").ifEmpty { composingStrForCommit }
+            } else {
+                composingStrForCommit
+            }
+        }
 
     val composingStrForCommit: String   // 获取输入的拼音字符串
         get() = Kernel.wordsShowPinyin.replace("'", "").ifEmpty { getCandidate(0)?.text?:""}
