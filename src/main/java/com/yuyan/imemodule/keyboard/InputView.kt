@@ -354,7 +354,7 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
     }
 
     fun processKeyUp(event: KeyEvent): Boolean {
-        if(event.isSystem) return processSystemKeys(event)
+        if (event.keyCode == KeyEvent.KEYCODE_BACK || event.isSystem) return processSystemKeys(event)
         else if(isFunctionKey(event.keyCode)){
             processFunctionKey(event)
             return true
@@ -390,11 +390,10 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
         return result
     }
 
-    // Android 13+ lets the system return arbiter hide the IME; older versions keep the
-    // explicit hide behavior for compatibility.
+    // Back must hide the IME even when the host app does not forward it to the system arbiter.
     private fun processSystemKeys(event: KeyEvent): Boolean {
         return when (event.keyCode) {
-            KeyEvent.KEYCODE_BACK -> if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && service.isInputViewShown) { requestHideSelf(); true } else false
+            KeyEvent.KEYCODE_BACK -> if (service.isInputViewShown) { requestHideSelf(); true } else false
             else -> false
         }
     }
