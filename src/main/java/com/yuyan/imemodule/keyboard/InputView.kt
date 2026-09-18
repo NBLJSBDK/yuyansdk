@@ -48,7 +48,6 @@ import com.yuyan.imemodule.utils.DevicesUtils
 import com.yuyan.imemodule.utils.InputMethodUtil
 import com.yuyan.imemodule.utils.KeyboardLoaderUtil
 import com.yuyan.imemodule.utils.LogUtil
-import com.yuyan.imemodule.utils.StringUtils
 import com.yuyan.imemodule.view.CandidatesBar
 import com.yuyan.imemodule.view.EditPhrasesView
 import com.yuyan.imemodule.view.FullDisplayKeyboardBar
@@ -341,6 +340,7 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
 
 
     fun processKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (event.unicodeChar != 0) return true
         if (keyCode >= KeyEvent.KEYCODE_A && keyCode <= KeyEvent.KEYCODE_Z) return true
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
@@ -390,10 +390,11 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
         return result
     }
 
-    // Back must hide the IME even when the host app does not forward it to the system arbiter.
+    // Older Android versions need the IME to hide Back explicitly; Android 13+ delegates the
+    // complete key pair to the system return arbiter.
     private fun processSystemKeys(event: KeyEvent): Boolean {
         return when (event.keyCode) {
-            KeyEvent.KEYCODE_BACK -> if (service.isInputViewShown) { requestHideSelf(); true } else false
+            KeyEvent.KEYCODE_BACK -> if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && service.isInputViewShown) { requestHideSelf(); true } else false
             else -> false
         }
     }
@@ -410,7 +411,10 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
     private fun processFunctionKey(event: KeyEvent) {
         when (val keyCode = event.keyCode) {
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_SPACE -> {
-                if (DecodingInfo.isCandidatesEmpty || DecodingInfo.isAssociate) {
+                if (keyCode == KeyEvent.KEYCODE_SPACE && event.isCtrlPressed) {
+                    InputModeSwitcher.switchModeForUserKey(InputModeSwitcher.USER_KEYCODE_LANG)
+                    resetToIdleState()
+                } else if (DecodingInfo.isCandidatesEmpty || DecodingInfo.isAssociate) {
                     sendKeyEvent(keyCode)
                     resetToIdleState()
                 }
@@ -643,7 +647,7 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
 
     private fun commitText(text: String) {
         if (isAddPhrases) mAddPhrasesLayout.commitText(text)
-        else service.commitText(StringUtils.converted2FlowerTypeface(text))
+        else service.commitText(text)
     }
 
     private fun commitPairSymbol(text: String) {
@@ -670,12 +674,12 @@ class InputView(context: Context, private val service: ImeService) : LifecycleRe
         if (isAddPhrases) {
             mAddPhrasesLayout.commitText(resultText)
         } else {
-            service.commitText(StringUtils.converted2FlowerTypeface(resultText))
+            service.commitText(resultText)
             if (InputModeSwitcher.isEnglish){
                 service.finishComposingText()
                 if(appPrefs.input.abcSpaceAuto.getValue()) service.commitText(" ")
-                resetToIdleState()
             }
+            resetToIdleState()
         }
     }
 

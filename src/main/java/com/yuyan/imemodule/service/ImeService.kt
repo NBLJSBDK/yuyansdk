@@ -121,17 +121,17 @@ class ImeService : InputMethodService() {
         // 0 != event.getRepeatCount()  长按物理按键或 Shift/Meta/Ctrl的组合按键时，交由系统处理;有个特殊组合键：Ctrl+SPACE切换语言
         return if (0 != event.repeatCount || event.isShiftPressed || event.isMetaPressed) super.onKeyDown(keyCode, event)
         else if(event.isCtrlPressed && keyCode != KeyEvent.KEYCODE_SPACE)super.onKeyDown(keyCode, event)
-        else if (isSoftKeyboard && ::mInputView.isInitialized) mInputView.processKeyDown(keyCode, event) || super.onKeyUp(keyCode, event)
-        else if (isHardwareKeyboard && ::mCandidateView.isInitialized) mCandidateView.processKeyDown(keyCode, event) || super.onKeyUp(keyCode, event)
+        else if (isSoftKeyboard && ::mInputView.isInitialized) mInputView.processKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
+        else if (isHardwareKeyboard && ::mCandidateView.isInitialized) mCandidateView.processKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
         else super.onKeyDown(keyCode, event)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        return if (0 != event.repeatCount || event.isShiftPressed || event.isMetaPressed) super.onKeyDown(keyCode, event)
-        else if(event.isCtrlPressed && keyCode != KeyEvent.KEYCODE_SPACE)super.onKeyDown(keyCode, event)
+        return if (0 != event.repeatCount || event.isShiftPressed || event.isMetaPressed) super.onKeyUp(keyCode, event)
+        else if(event.isCtrlPressed && keyCode != KeyEvent.KEYCODE_SPACE)super.onKeyUp(keyCode, event)
         else if (isSoftKeyboard && ::mInputView.isInitialized) mInputView.processKeyUp(event) || super.onKeyUp(keyCode, event)
         else if (isHardwareKeyboard && ::mCandidateView.isInitialized) mCandidateView.processKeyUp(event) || super.onKeyUp(keyCode, event)
-        else super.onKeyDown(keyCode, event)
+        else super.onKeyUp(keyCode, event)
     }
 
     override fun setInputView(view: View) {
@@ -147,11 +147,13 @@ class ImeService : InputMethodService() {
 
 
     override fun onComputeInsets(outInsets: Insets) {
-        val (x, y) = if (isSoftKeyboard && ::mInputView.isInitialized) intArrayOf(0, 0).also {if(mInputView.isAddPhrases) mInputView.mAddPhrasesLayout.getLocationInWindow(it) else mInputView.mSkbRoot.getLocationInWindow(it) }
-        else if (isHardwareKeyboard && ::mCandidateView.isInitialized) intArrayOf(0, 0).also {mCandidateView.mSkbRoot.getLocationInWindow(it) }
+        val hasSoftView = isSoftKeyboard && ::mInputView.isInitialized
+        val hasHardwareView = isHardwareKeyboard && ::mCandidateView.isInitialized
+        val (x, y) = if (hasSoftView) intArrayOf(0, 0).also {if(mInputView.isAddPhrases) mInputView.mAddPhrasesLayout.getLocationInWindow(it) else mInputView.mSkbRoot.getLocationInWindow(it) }
+        else if (hasHardwareView) intArrayOf(0, 0).also {mCandidateView.mSkbRoot.getLocationInWindow(it) }
         else intArrayOf(0, 0)
         outInsets.apply {
-            if(isSoftKeyboard || !isHardwareKeyboard){
+            if(hasSoftView){
                 if(EnvironmentSingleton.instance.keyboardModeFloat) {
                     contentTopInsets = EnvironmentSingleton.instance.mScreenHeight
                     visibleTopInsets = EnvironmentSingleton.instance.mScreenHeight
@@ -163,11 +165,16 @@ class ImeService : InputMethodService() {
                     touchableRegion.setEmpty()
                     visibleTopInsets = y
                 }
-            } else {
+            } else if (hasHardwareView) {
                 contentTopInsets = EnvironmentSingleton.instance.mScreenHeight
                 visibleTopInsets = EnvironmentSingleton.instance.mScreenHeight
                 touchableInsets = Insets.TOUCHABLE_INSETS_REGION
                 touchableRegion.set(x, y, x + mCandidateView.mSkbRoot.width, y + mCandidateView.mSkbRoot.height)
+            } else {
+                contentTopInsets = EnvironmentSingleton.instance.mScreenHeight
+                visibleTopInsets = EnvironmentSingleton.instance.mScreenHeight
+                touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+                touchableRegion.setEmpty()
             }
         }
     }
@@ -218,6 +225,11 @@ class ImeService : InputMethodService() {
     }
 
     fun sendCombinationKeyEvents(keyEventCode: Int, alt: Boolean = false, ctrl: Boolean = false, shift: Boolean = false) {
+        if (keyEventCode == KeyEvent.KEYCODE_DEL && !alt && !ctrl && !shift) {
+            // Use the editor deletion API so one physical Backspace removes one character.
+            deleteSurroundingText(1)
+            return
+        }
         var metaState = 0
         if (alt) metaState = KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
         if (ctrl) metaState = metaState or KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
@@ -255,7 +267,7 @@ class ImeService : InputMethodService() {
     }
 
     fun sendUpKeyEvent(eventTime: Long, keyEventCode: Int, metaState: Int = 0) {
-        currentInputConnection.sendKeyEvent(
+        currentInputConnection?.sendKeyEvent(
             KeyEvent(eventTime, SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, keyEventCode, 0, metaState,
                 KeyCharacterMap.VIRTUAL_KEYBOARD, keyEventCode, KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE)
         )
@@ -265,7 +277,7 @@ class ImeService : InputMethodService() {
      * 向输入框提交预选词
      */
     fun setComposingText(text: CharSequence) {
-        currentInputConnection.setComposingText(text, 1)
+        currentInputConnection?.setComposingText(text, 1)
     }
 
 
@@ -273,51 +285,56 @@ class ImeService : InputMethodService() {
      * 结束提交预选词
      */
     fun finishComposingText() {
-        currentInputConnection.finishComposingText()
+        currentInputConnection?.finishComposingText()
     }
 
     /**
      * 发送字符串给编辑框
      */
     fun commitText(text: String) {
-        currentInputConnection.commitText(StringUtils.converted2FlowerTypeface(text), 1)
+        currentInputConnection?.commitText(StringUtils.converted2FlowerTypeface(text), 1)
     }
 
     /**
      * 发送字符串给编辑框
      */
     fun commitText(text: String, newCursorPosition: Int) {
-        currentInputConnection.commitText(StringUtils.converted2FlowerTypeface(text), newCursorPosition)
+        currentInputConnection?.commitText(StringUtils.converted2FlowerTypeface(text), newCursorPosition)
     }
 
     fun getTextBeforeCursor(length:Int) : String {
-        return currentInputConnection.getTextBeforeCursor(length, 0).toString()
+        return currentInputConnection?.getTextBeforeCursor(length, 0)?.toString().orEmpty()
     }
 
     fun commitTextEditMenu(id:Int) {
-        currentInputConnection.performContextMenuAction(id)
+        currentInputConnection?.performContextMenuAction(id)
     }
 
     fun performEditorAction(editorAction:Int) {
-        currentInputConnection.performEditorAction(editorAction)
+        currentInputConnection?.performEditorAction(editorAction)
     }
 
     fun deleteSurroundingText(length:Int) {
-        currentInputConnection.deleteSurroundingText(length, 0)
+        currentInputConnection?.deleteSurroundingText(length, 0)
     }
 
     fun setSelection(start: Int, end: Int) {
-        currentInputConnection.setSelection(start, end)
+        currentInputConnection?.setSelection(start, end)
     }
 
     fun handleHardwareKeyboard(newConfig: Configuration? = null) {
         val hardwareKeyboard = if (getInstance().keyboardSetting.showVirtualKeyboardOnPhysicalKeyboard.getValue()) false
-            else if (newConfig != null) (newConfig.keyboard != Configuration.KEYBOARD_NOKEYS)
-            else resources.configuration.keyboard != Configuration.KEYBOARD_NOKEYS
+            else if (newConfig != null) hasHardwareKeyboard(newConfig)
+            else hasHardwareKeyboard(resources.configuration)
         isSoftKeyboard = !hardwareKeyboard
         isHardwareKeyboard = hardwareKeyboard
         setCandidatesViewShown(isHardwareKeyboard)
         currentInputConnection?.requestCursorUpdates(if(isHardwareKeyboard)InputConnection.CURSOR_UPDATE_MONITOR else 0)
+    }
+
+    private fun hasHardwareKeyboard(config: Configuration): Boolean {
+        return config.keyboard != Configuration.KEYBOARD_NOKEYS &&
+            config.hardKeyboardHidden != Configuration.HARDKEYBOARDHIDDEN_YES
     }
 
 }

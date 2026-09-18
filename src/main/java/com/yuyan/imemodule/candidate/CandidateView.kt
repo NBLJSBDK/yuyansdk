@@ -8,8 +8,6 @@ import android.view.LayoutInflater
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.RelativeLayout
-import android.widget.Toast
-import androidx.core.text.isDigitsOnly
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.yuyan.imemodule.R
@@ -23,7 +21,6 @@ import com.yuyan.imemodule.service.DecodingInfo
 import com.yuyan.imemodule.service.ImeService
 import com.yuyan.imemodule.singleton.EnvironmentSingleton.Companion.instance
 import com.yuyan.imemodule.utils.DevicesUtils
-import com.yuyan.imemodule.utils.StringUtils
 import com.yuyan.imemodule.view.widget.LifecycleRelativeLayout
 import splitties.dimensions.dp
 import splitties.views.bottomPadding
@@ -76,6 +73,7 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
     @SuppressLint("ClickableViewAccessibility")
     fun initView() {
         mSkbCandidatesBarView.initialize(mChoiceNotifier)
+        mFloatCandidateBarWidth = (if(instance.isLandscape)instance.mScreenHeight else instance.mScreenWidth) - dp(40)
         mSkbRoot.layoutParams.width = mFloatCandidateBarWidth
         updateTheme()
     }
@@ -97,7 +95,16 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
     }
 
     fun processKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if(InputModeSwitcher.isEnglish) return false
+        if (event.isCtrlPressed && keyCode == KeyEvent.KEYCODE_SPACE) return true
+        if (InputModeSwitcher.isEnglish) {
+            return when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_SPACE,
+                KeyEvent.KEYCODE_CLEAR, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_TAB,
+                in KeyEvent.KEYCODE_DPAD_UP..KeyEvent.KEYCODE_DPAD_RIGHT -> true
+                KeyEvent.KEYCODE_BACK -> Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                else -> false
+            }
+        }
         // 字母、数字、符号、空格
         if (keyCode >= KeyEvent.KEYCODE_A && keyCode <= KeyEvent.KEYCODE_Z) return true
         if (keyCode >= KeyEvent.KEYCODE_0 && keyCode <= KeyEvent.KEYCODE_9) return true
@@ -105,6 +112,7 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
         if (keyCode == KeyEvent.KEYCODE_APOSTROPHE || keyCode == KeyEvent.KEYCODE_SEMICOLON) return true   // KEYCODE_SEMICOLON在双拼中使用
         // 编辑键
         if (keyCode == KeyEvent.KEYCODE_DEL) return true
+        if (keyCode == KeyEvent.KEYCODE_BACK) return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
         if (keyCode == KeyEvent.KEYCODE_ENTER) return true
         if (keyCode == KeyEvent.KEYCODE_TAB) return true
         // 方向键
@@ -121,17 +129,22 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
 
     private fun processFunctionKeys(event: KeyEvent): Boolean {
         return when (val keyCode = event.keyCode) {
+            KeyEvent.KEYCODE_BACK -> {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    requestHideSelf()
+                    true
+                } else false
+            }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_SPACE -> {
-                if (DecodingInfo.isCandidatesEmpty || (DecodingInfo.isAssociate && !mSkbCandidatesBarView.isActiveCand())) {
+                if (keyCode == KeyEvent.KEYCODE_SPACE && event.isCtrlPressed) {
+                    InputModeSwitcher.switchModeForUserKey(InputModeSwitcher.USER_KEYCODE_LANG)
+                    resetToIdleState()
+                    true
+                } else if (DecodingInfo.isCandidatesEmpty || (DecodingInfo.isAssociate && !mSkbCandidatesBarView.isActiveCand())) {
                     sendKeyEvent(keyCode)
                     resetToIdleState()
                 } else {
                     chooseAndUpdate()
-                }
-                if(keyCode == KeyEvent.KEYCODE_SPACE && event.isCtrlPressed ){
-                    InputModeSwitcher.switchModeForUserKey(InputModeSwitcher.USER_KEYCODE_LANG)
-                    resetToIdleState()
-                    Toast.makeText(context, if(InputModeSwitcher.isEnglish)"语燕输入法-英文" else "语燕输入法-拼音", Toast.LENGTH_LONG).show()
                 }
                 true
             }
@@ -145,11 +158,23 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
                 resetToIdleState()
                 true
             }
+            KeyEvent.KEYCODE_TAB -> {
+                sendKeyEvent(keyCode)
+                resetToIdleState()
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (!DecodingInfo.isCandidatesEmpty && !DecodingInfo.isAssociate) chooseAndUpdate()
+                sendKeyEvent(keyCode)
+                resetToIdleState()
+                true
+            }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
                 if (!DecodingInfo.isCandidatesEmpty) {
                     mSkbCandidatesBarView.updateActiveCandidateNo(keyCode)
                 } else {
                     sendKeyEvent(keyCode)
+                    resetToIdleState()
                 }
                 true
             }
@@ -171,8 +196,15 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
                 }
                 true
             }
-            label.isDigitsOnly() ->{
-                chooseAndUpdate(label.toInt() - 1)
+            keyCode in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9 &&
+                keyCode - KeyEvent.KEYCODE_1 < DecodingInfo.candidateSize -> {
+                chooseAndUpdate(keyCode - KeyEvent.KEYCODE_1)
+                true
+            }
+            keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
+                if (!DecodingInfo.isCandidatesEmpty && !DecodingInfo.isAssociate) chooseAndUpdate()
+                sendKeyEvent(keyCode)
+                resetToIdleState()
                 true
             }
             Character.isLetter(keyChar) || keyCode == KeyEvent.KEYCODE_APOSTROPHE || keyCode == KeyEvent.KEYCODE_SEMICOLON -> {
@@ -234,12 +266,12 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
 
     private fun commitDecInfoText(resultText: String?) {
         resultText ?: return
-        service.commitText(StringUtils.converted2FlowerTypeface(resultText))
+        service.commitText(resultText)
         if (InputModeSwitcher.isEnglish){
             service.finishComposingText()
             if(appPrefs.input.abcSpaceAuto.getValue()) service.commitText(" ")
-            resetToIdleState()
         }
+        resetToIdleState()
     }
 
     fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
