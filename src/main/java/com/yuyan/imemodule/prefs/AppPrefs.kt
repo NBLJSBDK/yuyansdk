@@ -199,7 +199,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             )
         )
 
-        val showVirtualKeyboardOnPhysicalKeyboard = switch(R.string.show_virtual_keyboard_with_external, "show_virtual_keyboard_with_external", false)
+        val showVirtualKeyboardOnPhysicalKeyboard = switch(R.string.show_virtual_keyboard_with_external, "show_virtual_keyboard_with_external", true)
     }
 
     inner class Voice : ManagedPreferenceCategory(R.string.setting_ime_input, sharedPreferences) {
