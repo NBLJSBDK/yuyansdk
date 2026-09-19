@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.os.SystemClock
 import android.text.InputType
+import android.util.Log
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.InputDevice
@@ -40,6 +41,7 @@ import splitties.bitflags.hasFlag
  * Main class of the Pinyin input method. 输入法服务
  */
 class ImeService : InputMethodService() {
+    private val logTag = "YuyanIme.ImeService"
     private var isHardwareKeyboard = false
     private var isSoftKeyboard = false
     private lateinit var mInputView: InputView
@@ -339,6 +341,7 @@ class ImeService : InputMethodService() {
             else hasHardwareKeyboard(resources.configuration)
         isSoftKeyboard = !hardwareKeyboard
         isHardwareKeyboard = hardwareKeyboard
+        Log.d(logTag, "keyboard mode: hardware=$hardwareKeyboard, showVirtual=${getInstance().keyboardSetting.showVirtualKeyboardOnPhysicalKeyboard.getValue()}")
         setCandidatesViewShown(isHardwareKeyboard)
         currentInputConnection?.requestCursorUpdates(if(isHardwareKeyboard)InputConnection.CURSOR_UPDATE_MONITOR else 0)
     }
@@ -350,16 +353,17 @@ class ImeService : InputMethodService() {
     }
 
     private fun hasHardwareKeyboard(config: Configuration): Boolean {
-        val configurationHasKeyboard = config.keyboard != Configuration.KEYBOARD_NOKEYS &&
-            config.hardKeyboardHidden != Configuration.HARDKEYBOARDHIDDEN_YES
-        if (configurationHasKeyboard) return true
-
-        return InputDevice.getDeviceIds().any { deviceId ->
+        val externalKeyboard = InputDevice.getDeviceIds().any { deviceId ->
             val device = InputDevice.getDevice(deviceId)
-            device != null && !device.isVirtual &&
+            device != null && device.isExternal && !device.isVirtual &&
                 device.keyboardType != InputDevice.KEYBOARD_TYPE_NONE &&
+                !device.name.equals("uinput_nav", ignoreCase = true) &&
                 device.sources and InputDevice.SOURCE_KEYBOARD == InputDevice.SOURCE_KEYBOARD
         }
+        if (externalKeyboard) return true
+
+        return config.keyboard != Configuration.KEYBOARD_NOKEYS &&
+            config.hardKeyboardHidden != Configuration.HARDKEYBOARDHIDDEN_YES
     }
 
 }
