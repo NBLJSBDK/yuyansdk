@@ -6,8 +6,10 @@ import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
+import android.view.InputDevice
 import android.view.View
 import android.view.ViewGroup
+import android.hardware.input.InputManager
 import android.view.inputmethod.CursorAnchorInfo
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
@@ -42,6 +44,13 @@ class ImeService : InputMethodService() {
     private var isSoftKeyboard = false
     private lateinit var mInputView: InputView
     private lateinit var mCandidateView: CandidateView
+    private val inputDeviceListener = object : InputManager.InputDeviceListener {
+        override fun onInputDeviceAdded(deviceId: Int) = refreshKeyboardMode()
+
+        override fun onInputDeviceRemoved(deviceId: Int) = refreshKeyboardMode()
+
+        override fun onInputDeviceChanged(deviceId: Int) = refreshKeyboardMode()
+    }
     private val onThemeChangeListener = OnThemeChangeListener { _: Theme? ->
         if (isHardwareKeyboard && ::mCandidateView.isInitialized) mCandidateView.updateTheme()
         else if (isSoftKeyboard && ::mInputView.isInitialized) mInputView.updateTheme()
@@ -61,6 +70,7 @@ class ImeService : InputMethodService() {
     }
     override fun onCreate() {
         super.onCreate()
+        (getSystemService(INPUT_SERVICE) as? InputManager)?.registerInputDeviceListener(inputDeviceListener, null)
         addOnChangedListener(onThemeChangeListener)
         clipboardUpdateContent.registerOnChangeListener(clipboardUpdateContentListener)
     }
@@ -92,6 +102,7 @@ class ImeService : InputMethodService() {
     }
 
     override fun onDestroy() {
+        (getSystemService(INPUT_SERVICE) as? InputManager)?.unregisterInputDeviceListener(inputDeviceListener)
         super.onDestroy()
         removeOnChangedListener(onThemeChangeListener)
         clipboardUpdateContent.unregisterOnChangeListener(clipboardUpdateContentListener)
@@ -332,9 +343,23 @@ class ImeService : InputMethodService() {
         currentInputConnection?.requestCursorUpdates(if(isHardwareKeyboard)InputConnection.CURSOR_UPDATE_MONITOR else 0)
     }
 
+    private fun refreshKeyboardMode() {
+        if (!::mInputView.isInitialized && !::mCandidateView.isInitialized) return
+        handleHardwareKeyboard()
+        updateInputViewShown()
+    }
+
     private fun hasHardwareKeyboard(config: Configuration): Boolean {
-        return config.keyboard != Configuration.KEYBOARD_NOKEYS &&
+        val configurationHasKeyboard = config.keyboard != Configuration.KEYBOARD_NOKEYS &&
             config.hardKeyboardHidden != Configuration.HARDKEYBOARDHIDDEN_YES
+        if (configurationHasKeyboard) return true
+
+        return InputDevice.getDeviceIds().any { deviceId ->
+            val device = InputDevice.getDevice(deviceId)
+            device != null && !device.isVirtual &&
+                device.keyboardType != InputDevice.KEYBOARD_TYPE_NONE &&
+                device.sources and InputDevice.SOURCE_KEYBOARD == InputDevice.SOURCE_KEYBOARD
+        }
     }
 
 }
