@@ -273,17 +273,21 @@ object InputModeSwitcher {
 
     // 记录SHIFT点击时间，作为双击判断
     private var lsatClickTime = 0L
+    // 单击大写模式：false 持续大写，true 只大写一个字母后自动回小写
+    private var oneShotUpperCase = false
+    private var modifiersBeforeClick = MASK_CASE_LOWER
 
     fun processShiftKey(userKey: Int) {
-        mToggleStates.modifiers = if(System.currentTimeMillis() - lsatClickTime < 300){
-            KeyEvent.META_CAPS_LOCK_ON
-        } else if (MASK_CASE_LOWER == mToggleStates.modifiers) {
-            KeyEvent.META_SHIFT_ON
-        } else {
-            MASK_CASE_LOWER
-        }
+        val now = System.currentTimeMillis()
+        val isDoubleClick = now - lsatClickTime < 300
+        val baseModifiers = if (isDoubleClick) modifiersBeforeClick else mToggleStates.modifiers
+        if (!isDoubleClick) modifiersBeforeClick = mToggleStates.modifiers
+        if (isDoubleClick) oneShotUpperCase = !oneShotUpperCase
+        val upperCaseMode =
+            if (oneShotUpperCase) KeyEvent.META_SHIFT_ON else KeyEvent.META_CAPS_LOCK_ON
+        mToggleStates.modifiers = if (MASK_CASE_LOWER == baseModifiers) upperCaseMode else MASK_CASE_LOWER
         Kernel.setCharCase(mToggleStates.modifiers)
-        lsatClickTime = System.currentTimeMillis()
+        lsatClickTime = now
         (KeyboardManager.instance.currentContainer as? InputBaseContainer)?.updateStates()
     }
 
