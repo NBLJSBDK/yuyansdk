@@ -61,6 +61,8 @@
     <string name="clipboard_layout_mode_flexbox">紧凑布局</string>
     <string name="clipboard_clear">清空剪贴板</string>
     <string name="clipboard_empty_ltip">无任何内容</string>
+    <string name="clipboard_auto_newline">粘贴后自动换行</string>
+    <string name="clipboard_keep_open">粘贴后不自动退出剪贴板</string>
     <string name="about">关于</string>
     <string name="feedback">吐槽与反馈</string>
     <string name="app_version">应用版本</string>

@@ -100,7 +100,11 @@ class ClipBoardContainer(context: Context, inputView: InputView) : BaseContainer
         mRVSymbolsView.setAdapter(null)
         mRVSymbolsView.setOnItemClickListener{ _: View?, position: Int ->
             inputView.responseLongKeyEvent(Pair(PopupMenuMode.Text, copyContents[position].content))
-            if(!CustomConstant.lockClipBoardEnable)KeyboardManager.instance.switchKeyboard()
+            val clipboardPrefs = AppPrefs.getInstance().clipboard
+            if (clipboardPrefs.clipboardAutoNewline.getValue()) {
+                inputView.responseLongKeyEvent(Pair(PopupMenuMode.Enter, ""))
+            }
+            if(!CustomConstant.lockClipBoardEnable && !clipboardPrefs.clipboardKeepOpen.getValue())KeyboardManager.instance.switchKeyboard()
         }
         mRVSymbolsView.setSwipeMenuCreator{ _: SwipeMenu, rightMenu: SwipeMenu, position: Int ->
             val topItem = SwipeMenuItem(mContext).apply {

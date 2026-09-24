@@ -277,6 +277,13 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         ) {
             clipboardListening.getValue()
         }
+
+        val clipboardAutoNewline = switch(
+            R.string.clipboard_auto_newline, "clipboard_auto_newline", false
+        )
+        val clipboardKeepOpen = switch(
+            R.string.clipboard_keep_open, "clipboard_keep_open", false
+        )
     }
 
     private val providers = mutableListOf<ManagedPreferenceProvider>()
