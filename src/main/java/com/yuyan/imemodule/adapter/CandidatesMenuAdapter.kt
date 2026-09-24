@@ -106,7 +106,8 @@ class CandidatesMenuAdapter(context: Context?) : RecyclerView.Adapter<Candidates
             SkbMenuMode.PinyinLx17 -> rimeValue == CustomConstant.SCHEMA_ZH_DOUBLE_LX17
             SkbMenuMode.Pinyin26Double -> rimeValue.startsWith(CustomConstant.SCHEMA_ZH_DOUBLE_FLYPY) && rimeValue != CustomConstant.SCHEMA_ZH_DOUBLE_LX17
             SkbMenuMode.PinyinStroke -> rimeValue == CustomConstant.SCHEMA_ZH_STROKE
-            SkbMenuMode.LockClipBoard -> CustomConstant.lockClipBoardEnable
+            SkbMenuMode.LockClipBoard -> AppPrefs.getInstance().clipboard.clipboardKeepOpen.getValue()
+            SkbMenuMode.ClipBoardAutoNewline -> AppPrefs.getInstance().clipboard.clipboardAutoNewline.getValue()
             SkbMenuMode.TextEdit -> InputModeSwitcher.isTextEditSkb
             else -> false
         }

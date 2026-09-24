@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.yuyan.imemodule.R
 import com.yuyan.imemodule.adapter.ClipBoardAdapter
-import com.yuyan.imemodule.application.CustomConstant
 import com.yuyan.imemodule.data.theme.ThemeManager.activeTheme
 import com.yuyan.imemodule.database.DataBaseKT
 import com.yuyan.imemodule.database.entry.Clipboard
@@ -67,7 +66,6 @@ class ClipBoardContainer(context: Context, inputView: InputView) : BaseContainer
      * 显示候选词界面 , 点击候选词时执行
      */
     fun showClipBoardView(item: SkbMenuMode) {
-        CustomConstant.lockClipBoardEnable = false
         itemMode = item
         mRVSymbolsView.setHasFixedSize(true)
         val copyContents : MutableList<Clipboard> =
@@ -104,7 +102,7 @@ class ClipBoardContainer(context: Context, inputView: InputView) : BaseContainer
             if (clipboardPrefs.clipboardAutoNewline.getValue()) {
                 inputView.responseLongKeyEvent(Pair(PopupMenuMode.Enter, ""))
             }
-            if(!CustomConstant.lockClipBoardEnable && !clipboardPrefs.clipboardKeepOpen.getValue())KeyboardManager.instance.switchKeyboard()
+            if(!clipboardPrefs.clipboardKeepOpen.getValue())KeyboardManager.instance.switchKeyboard()
         }
         mRVSymbolsView.setSwipeMenuCreator{ _: SwipeMenu, rightMenu: SwipeMenu, position: Int ->
             val topItem = SwipeMenuItem(mContext).apply {

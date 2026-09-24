@@ -138,7 +138,14 @@ fun onSettingsMenuClick(inputView: InputView, skbMenuMode: SkbMenuMode) {
             (KeyboardManager.instance.currentContainer as? CandidatesContainer)?.showCandidatesView()
         }
         SkbMenuMode.LockClipBoard -> {
-            CustomConstant.lockClipBoardEnable = !CustomConstant.lockClipBoardEnable
+            val clipboardKeepOpen = AppPrefs.getInstance().clipboard.clipboardKeepOpen
+            clipboardKeepOpen.setValue(!clipboardKeepOpen.getValue())
+            inputView.updateCandidateBar()
+        }
+        SkbMenuMode.ClipBoardAutoNewline -> {
+            val clipboardAutoNewline = AppPrefs.getInstance().clipboard.clipboardAutoNewline
+            clipboardAutoNewline.setValue(!clipboardAutoNewline.getValue())
+            inputView.updateCandidateBar()
         }
         SkbMenuMode.TextEdit -> {
             InputModeSwitcher.switchModeForUserKey(
