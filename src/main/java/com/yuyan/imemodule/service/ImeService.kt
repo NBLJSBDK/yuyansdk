@@ -2,6 +2,7 @@ package com.yuyan.imemodule.service
 
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
+import android.os.Build
 import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyCharacterMap
@@ -226,8 +227,7 @@ class ImeService : InputMethodService() {
 
     fun sendCombinationKeyEvents(keyEventCode: Int, alt: Boolean = false, ctrl: Boolean = false, shift: Boolean = false) {
         if (keyEventCode == KeyEvent.KEYCODE_DEL && !alt && !ctrl && !shift) {
-            // Use the editor deletion API so one physical Backspace removes one character.
-            deleteSurroundingText(1)
+            deleteBackward()
             return
         }
         var metaState = 0
@@ -312,6 +312,19 @@ class ImeService : InputMethodService() {
 
     fun performEditorAction(editorAction:Int) {
         currentInputConnection?.performEditorAction(editorAction)
+    }
+
+    fun deleteBackward() {
+        val inputConnection = currentInputConnection ?: return
+        if (!inputConnection.getSelectedText(0).isNullOrEmpty()) {
+            // deleteSurroundingText does not remove a selection; replace the selection with empty text.
+            inputConnection.commitText("", 1)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            // Delete one code point so emoji (surrogate pairs) are removed in a single press.
+            inputConnection.deleteSurroundingTextInCodePoints(1, 0)
+        } else {
+            inputConnection.deleteSurroundingText(1, 0)
+        }
     }
 
     fun deleteSurroundingText(length:Int) {
