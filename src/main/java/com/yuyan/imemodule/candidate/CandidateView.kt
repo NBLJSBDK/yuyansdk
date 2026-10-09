@@ -2,6 +2,7 @@ package com.yuyan.imemodule.candidate
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Build
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -12,16 +13,18 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.yuyan.imemodule.R
 import com.yuyan.imemodule.callback.CandidateViewListener
+import com.yuyan.imemodule.callback.IKeyboardView
 import com.yuyan.imemodule.data.theme.ThemeManager
 import com.yuyan.imemodule.keyboard.KeyboardManager
 import com.yuyan.imemodule.manager.InputModeSwitcher
 import com.yuyan.imemodule.prefs.AppPrefs.Companion.getInstance
 import com.yuyan.imemodule.prefs.behavior.SkbMenuMode
-import com.yuyan.imemodule.service.DecodingInfo
+import com.yuyan.imemodule.service.DictDecoder
 import com.yuyan.imemodule.service.ImeService
+import com.yuyan.imemodule.service.InputDispatcher
 import com.yuyan.imemodule.singleton.EnvironmentSingleton.Companion.instance
 import com.yuyan.imemodule.utils.DevicesUtils
-import com.yuyan.imemodule.view.widget.LifecycleRelativeLayout
+import com.yuyan.imemodule.utils.StringUtils
 import splitties.dimensions.dp
 import splitties.views.bottomPadding
 import splitties.views.leftPadding
@@ -32,8 +35,7 @@ import kotlin.math.max
  * 包含拼音显示、候选词栏、键盘界面等。
  */
 @SuppressLint("ViewConstructor")
-class CandidateView(context: Context, private val service: ImeService) : LifecycleRelativeLayout(context) {
-
+class CandidateView(context: Context, private val service: ImeService) : IKeyboardView(context) {
     private var mHorizontalCutoutWidth: Int = 0
     private var mFloatCandidateBarWidth: Int = 0
     private val appPrefs = getInstance()
@@ -42,16 +44,16 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
     var mSkbCandidatesBarView: FloatCandidateBar
 
     init {
-        InputModeSwitcher.reset()
         initDisplayCutout(service)
         mFloatCandidateBarWidth = (if(instance.isLandscape)instance.mScreenHeight else instance.mScreenWidth) - dp(40)
         mSkbRoot = LayoutInflater.from(context).inflate(R.layout.sdk_candidate_container, this, false) as RelativeLayout
         addView(mSkbRoot)
         mSkbCandidatesBarView = mSkbRoot.findViewById(R.id.candidates_bar)
-        DecodingInfo.candidatesLiveData.observe(this) {
-            mSkbCandidatesBarView.showCandidates()
-        }
         initView()
+    }
+
+    override fun onCandidateChanged() {
+        mSkbCandidatesBarView.showCandidates()
     }
 
     private fun initDisplayCutout(service: ImeService) {
@@ -78,14 +80,14 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
         updateTheme()
     }
 
-    fun updateTheme() {
+    override fun updateTheme() {
         setBackgroundResource(android.R.color.transparent)
         val activeTheme = ThemeManager.activeTheme
         val keyTextColor = activeTheme.keyTextColor
         mSkbCandidatesBarView.updateTheme(keyTextColor)
     }
 
-    fun updatePosition(anchor: FloatArray) {
+    override fun updatePosition(anchor: FloatArray) {
         val bottom = instance.mScreenHeight - anchor[1].toInt()
         val diffHight = (instance.heightForCandidatesArea * 1.5).toInt()
         leftPadding = if(!instance.isLandscape) 0
@@ -94,7 +96,7 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
         bottomPadding = if(bottom > diffHight) bottom - diffHight else bottom + instance.heightForCandidatesArea
     }
 
-    fun processKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+    override fun processKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (event.isCtrlPressed && keyCode == KeyEvent.KEYCODE_SPACE) return true
         if (InputModeSwitcher.isEnglish) {
             return when (keyCode) {
@@ -120,7 +122,7 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
         return false
     }
 
-    fun processKeyUp(event: KeyEvent): Boolean {
+    override fun processKeyUp(event: KeyEvent): Boolean {
         InputModeSwitcher.resetCharCase()
         return if (processFunctionKeys(event)) true
         else if (InputModeSwitcher.isChinese) processInput(event)
@@ -131,7 +133,7 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
         return when (val keyCode = event.keyCode) {
             KeyEvent.KEYCODE_BACK -> {
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    requestHideSelf()
+                    service.requestHideSelf(0)
                     true
                 } else false
             }
@@ -140,7 +142,7 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
                     InputModeSwitcher.switchModeForUserKey(InputModeSwitcher.USER_KEYCODE_LANG)
                     resetToIdleState()
                     true
-                } else if (DecodingInfo.isCandidatesEmpty || (DecodingInfo.isAssociate && !mSkbCandidatesBarView.isActiveCand())) {
+                } else if (DictDecoder.isCandidatesEmpty || (DictDecoder.isAssociate && !mSkbCandidatesBarView.isActiveCand())) {
                     sendKeyEvent(keyCode)
                     resetToIdleState()
                 } else {
@@ -153,8 +155,8 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
                 true
             }
             KeyEvent.KEYCODE_ENTER -> {
-                if (DecodingInfo.isCandidatesEmpty || DecodingInfo.isAssociate) sendKeyEvent(keyCode)
-                else commitDecInfoText(DecodingInfo.composingStrForEnter)
+                if (DictDecoder.isCandidatesEmpty || DictDecoder.isAssociate) sendKeyEvent(keyCode)
+                else commitDecInfoText(DictDecoder.composingStrForEnter)
                 resetToIdleState()
                 true
             }
@@ -164,13 +166,13 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
                 true
             }
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
-                if (!DecodingInfo.isCandidatesEmpty && !DecodingInfo.isAssociate) chooseAndUpdate()
+                if (!DictDecoder.isCandidatesEmpty && !DictDecoder.isAssociate) chooseAndUpdate()
                 sendKeyEvent(keyCode)
                 resetToIdleState()
                 true
             }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                if (!DecodingInfo.isCandidatesEmpty) {
+                if (!DictDecoder.isCandidatesEmpty) {
                     mSkbCandidatesBarView.updateActiveCandidateNo(keyCode)
                 } else {
                     sendKeyEvent(keyCode)
@@ -188,52 +190,57 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
         val label = keyChar.toChar().toString()
         return when {
             keyCode == KeyEvent.KEYCODE_DEL -> {
-                if (DecodingInfo.isCandidatesEmpty || DecodingInfo.isAssociate) {
+                if (DictDecoder.isCandidatesEmpty || DictDecoder.isAssociate) {
                     sendKeyEvent(keyCode)
                 } else {
-                    DecodingInfo.deleteAction()
+                    if(!InputDispatcher.isFinish){
+                        InputDispatcher.deleteAction()
+                    } else {
+                        InputDispatcher.reset()
+                    }
                     updateCandidate()
                 }
                 true
             }
             keyCode in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9 &&
-                keyCode - KeyEvent.KEYCODE_1 < DecodingInfo.candidateSize -> {
+                keyCode - KeyEvent.KEYCODE_1 < DictDecoder.candidateSize -> {
                 chooseAndUpdate(keyCode - KeyEvent.KEYCODE_1)
                 true
             }
             keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
-                if (!DecodingInfo.isCandidatesEmpty && !DecodingInfo.isAssociate) chooseAndUpdate()
+                if (!DictDecoder.isCandidatesEmpty && !DictDecoder.isAssociate) chooseAndUpdate()
                 sendKeyEvent(keyCode)
                 resetToIdleState()
                 true
             }
             Character.isLetter(keyChar) || keyCode == KeyEvent.KEYCODE_APOSTROPHE || keyCode == KeyEvent.KEYCODE_SEMICOLON -> {
-                DecodingInfo.inputAction(event)
+                InputDispatcher.inputKeyCode(event)
                 updateCandidate()
                 true
             }
             else -> {
-                if (!DecodingInfo.isCandidatesEmpty && !DecodingInfo.isAssociate) chooseAndUpdate()
+                if (!DictDecoder.isCandidatesEmpty && !DictDecoder.isAssociate) chooseAndUpdate()
                 false
             }
         }
     }
 
     fun resetToIdleState() {
-        DecodingInfo.reset()
+        DictDecoder.reset()
+        InputDispatcher.reset()
     }
 
     fun chooseAndUpdate(candId: Int = mSkbCandidatesBarView.getActiveCandNo()) {
-        val choice = DecodingInfo.chooseDecodingCandidate(candId)
-        if (DecodingInfo.isCandidatesEmpty || DecodingInfo.isAssociate) {
+        val choice = DictDecoder.chooseDecodingCandidate(candId)
+        if (DictDecoder.isCandidatesEmpty || DictDecoder.isAssociate) {
             commitDecInfoText(choice)
             resetToIdleState()
         }
     }
 
     private fun updateCandidate() {
-        DecodingInfo.updateDecodingCandidate()
-        if (DecodingInfo.isCandidatesEmpty) resetToIdleState()
+        DictDecoder.updateDecodingCandidate()
+        if (DictDecoder.isCandidatesEmpty) resetToIdleState()
     }
 
     inner class ChoiceNotifier internal constructor() : CandidateViewListener {
@@ -251,8 +258,6 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
 
         override fun onClickClearClipBoard() {}
     }
-
-    fun requestHideSelf() = service.requestHideSelf(0)
 
     private fun sendKeyEvent(keyCode: Int) {
         when (keyCode) {
@@ -274,9 +279,22 @@ class CandidateView(context: Context, private val service: ImeService) : Lifecyc
         resetToIdleState()
     }
 
-    fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
-        if(editorInfo != null)InputModeSwitcher.requestInputWithSkb(editorInfo)
-        if (!restarting) resetToIdleState()
+    override fun onStartInputView(editorInfo: EditorInfo, restarting: Boolean) {}
+
+    override fun getKeyboardRect(): IntArray {
+        val location = intArrayOf(0, 0).also { mSkbRoot.getLocationInWindow(it) }
+        return intArrayOf(location[0], location[1], mFloatCandidateBarWidth, (instance.heightForCandidatesArea * 1.2.toInt()))
     }
 
+    override fun showSymbols(symbols: Array<String>) {}
+
+    override fun setConfiguration(newConfig: Configuration) {
+        initView()
+    }
+
+    override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesEnd: Int) {}
+
+    override fun onWindowShown() {}
+
+    override fun onWindowHidden() {}
 }

@@ -1,15 +1,14 @@
 package com.yuyan.imemodule.service
 
-import android.view.KeyEvent
 import androidx.lifecycle.MutableLiveData
 import com.yuyan.imemodule.application.CustomConstant
+import com.yuyan.inputmethod.RimeEngine
 import com.yuyan.inputmethod.core.CandidateListItem
-import com.yuyan.inputmethod.core.Kernel
 
 /**
  * 词库解码操作对象
  */
-object DecodingInfo {
+object DictDecoder {
 
     var activeCandidate = 0  //当前显示候选词位置
     var activeCandidateBar = 0  //当前显示候选词位置
@@ -19,14 +18,13 @@ object DecodingInfo {
     var isAssociate = false
 
     /**
-     * 重置
+     * 重置候选词
      */
     fun reset() {
         isAssociate = false
         activeCandidate = 0
         activeCandidateBar = 0
         candidatesLiveData.value = emptyList()
-        Kernel.reset()
     }
 
     val isCandidatesEmpty: Boolean
@@ -42,11 +40,11 @@ object DecodingInfo {
         // 候选词列表是否为空
         get() = candidatesLiveData.value?:emptyList()
 
-    // 增加拼写字符
-    fun inputAction(event: KeyEvent) {
+
+    // 增加拼写字符，重置候选词状态
+    fun inputAction() {
         activeCandidate = 0
         activeCandidateBar = 0
-        Kernel.inputKeyCode(event)
         isAssociate = false
     }
 
@@ -57,11 +55,10 @@ object DecodingInfo {
     fun selectPrefix(position: Int) {
         activeCandidate = 0
         activeCandidateBar = 0
-        Kernel.selectPrefix(position)
     }
 
     val prefixs: Array<String>  //获取拼音组合
-        get() = Kernel.prefixs
+        get() = RimeEngine.getPrefixs()
 
     /**
      * 删除
@@ -69,35 +66,29 @@ object DecodingInfo {
     fun deleteAction() {
         activeCandidate = 0
         activeCandidateBar = 0
-        if(!isEngineFinish)Kernel.deleteAction()
-        else reset()
     }
 
-
-    val isEngineFinish: Boolean
-        get() = Kernel.isFinish
-
     val composingStrForDisplay: String   //获取显示的拼音字符串/
-        get() = Kernel.wordsShowPinyin
+        get() = RimeEngine.showComposition
 
     val composingStrForEnter: String
         get() {
-            val schema = Kernel.getCurrentRimeSchema()
+            val schema = InputDispatcher.getCurrentRimeSchema()
             return if (schema.startsWith(CustomConstant.SCHEMA_ZH_DOUBLE_FLYPY) &&
                 schema != CustomConstant.SCHEMA_ZH_DOUBLE_LX17
             ) {
-                Kernel.rawComposition.replace("'", "").ifEmpty { composingStrForCommit }
+                RimeEngine.rawComposition.replace("'", "").ifEmpty { composingStrForCommit }
             } else {
                 composingStrForCommit
             }
         }
 
     val composingStrForCommit: String   // 获取输入的拼音字符串
-        get() = Kernel.wordsShowPinyin.replace("'", "").ifEmpty { getCandidate(0)?.text?:""}
+        get() = RimeEngine.showComposition.replace("'", "").ifEmpty { getCandidate(0)?.text?:""}
 
     val nextPageCandidates: Int   // 获取下一页的候选词
         get() {
-            val cands = Kernel.nextPageCandidates
+            val cands = RimeEngine.getNextPageCandidates()
             if (cands.isNotEmpty()) {
                 candidatesLiveData.postValue(candidatesLiveData.value?.plus(cands))
                 return cands.size
@@ -112,11 +103,11 @@ object DecodingInfo {
         activeCandidate = 0
         activeCandidateBar = 0
         var candidate: String
-        if(!isEngineFinish || isAssociate) { // Rime和联想
-            if (candId >= 0) Kernel.getWordSelectedWord(candId)
-            val newCandidates = Kernel.candidates
-            candidate = if (newCandidates.isNotEmpty()) Kernel.commitText
-            else if (candId in 0..<candidateSize) Kernel.commitText.ifEmpty { candidatesLiveData.value!![candId].text }
+        if(!InputDispatcher.isFinish || isAssociate) { // Rime和联想
+            if (candId >= 0) InputDispatcher.getWordSelectedWord(candId)
+            val newCandidates = RimeEngine.showCandidates
+            candidate = if (newCandidates.isNotEmpty()) RimeEngine.preCommitText
+            else if (candId in 0..<candidateSize) RimeEngine.preCommitText.ifEmpty { candidatesLiveData.value!![candId].text }
             else ""
             candidatesLiveData.value = newCandidates
         } else {  // 手写
@@ -132,7 +123,7 @@ object DecodingInfo {
     fun updateDecodingCandidate() {
         activeCandidate = 0
         activeCandidateBar = 0
-        candidatesLiveData.value = Kernel.candidates
+        candidatesLiveData.value = RimeEngine.showCandidates
     }
 
     /**
@@ -155,6 +146,5 @@ object DecodingInfo {
      */
     fun getAssociateWord(words: String) {
         isAssociate = true
-        Kernel.getAssociateWord(words)
     }
 }

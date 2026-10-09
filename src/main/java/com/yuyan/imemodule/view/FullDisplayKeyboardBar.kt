@@ -18,6 +18,7 @@ import com.yuyan.imemodule.utils.InputMethodUtil
 import com.yuyan.imemodule.keyboard.InputView
 import com.yuyan.imemodule.keyboard.KeyboardManager
 import com.yuyan.imemodule.keyboard.container.ClipBoardContainer
+import com.yuyan.imemodule.singleton.EnvironmentSingleton
 import splitties.dimensions.dp
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
@@ -30,14 +31,13 @@ import kotlin.math.abs
 @SuppressLint("ViewConstructor")
 class FullDisplayKeyboardBar(context: Context?, inputView: InputView) : LinearLayout(context) {
 
-    private val mInputView: InputView
+    private val mInputView: InputView = inputView
     private val mIVKeyLeft: ImageView
     private val mLLCenter: LinearLayout
     private val mIVKeyRight: ImageView
     private val mCenterModeMove: Boolean
     init {
-        mInputView = inputView
-        setPadding(dp(20), dp(10), dp(20), dp(20))
+        setPadding(dp(20), dp(10), dp(20), dp(10))
         val fullDisplayKeyLeft = AppPrefs.getInstance().internal.fullDisplayKeyModeLeft.getValue()
         val fullDisplayKeyRight = AppPrefs.getInstance().internal.fullDisplayKeyModeRight.getValue()
         val centerMode = FullDisplayCenterMode.decode(AppPrefs.getInstance().internal.fullDisplayCenterMode.getValue())
@@ -120,6 +120,12 @@ class FullDisplayKeyboardBar(context: Context?, inputView: InputView) : LinearLa
             }
             else -> false
         }
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val heightMeasure = MeasureSpec.makeMeasureSpec(EnvironmentSingleton.instance.heightForFullDisplayBar, MeasureSpec.EXACTLY)
+        val widthMeasure = MeasureSpec.makeMeasureSpec(EnvironmentSingleton.instance.skbWidth, MeasureSpec.EXACTLY)
+        super.onMeasure(widthMeasure, heightMeasure)
     }
 
 
