@@ -81,6 +81,7 @@ class KeyRecordStack {
                 record.toString() == keys[j].toString() && record is InputKey.T9Key && !record.consumed
             }
         }
+        if (keys.isEmpty() || index < 0) return null
         repeat(keys.size) {
             keyRecords.removeAt(index)
         }
