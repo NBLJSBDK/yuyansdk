@@ -200,6 +200,34 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         )
 
         val showVirtualKeyboardOnPhysicalKeyboard = switch(R.string.show_virtual_keyboard_with_external, "show_virtual_keyboard_with_external", false)
+
+        val physicalKeyboardDoublePinyin = switch(
+            R.string.physical_keyboard_double_pinyin, "physical_keyboard_double_pinyin", false
+        )
+        val physicalKeyboardDoublePinyinSchema = list(
+            R.string.physical_keyboard_double_pinyin_schema,
+            "physical_keyboard_double_pinyin_schema",
+            DoublePinyinSchemaMode.natural,
+            DoublePinyinSchemaMode,
+            listOf(
+                DoublePinyinSchemaMode.flypy,
+                DoublePinyinSchemaMode.natural,
+                DoublePinyinSchemaMode.abc,
+                DoublePinyinSchemaMode.mspy,
+                DoublePinyinSchemaMode.sogou,
+                DoublePinyinSchemaMode.ziguang,
+            ),
+            listOf(
+                R.string.double_pinyin_flypy_plus,
+                R.string.double_pinyin_natural,
+                R.string.double_pinyin_abc,
+                R.string.double_pinyin_mspy,
+                R.string.double_pinyin_sougou,
+                R.string.double_pinyin_ziguang,
+            )
+        ) {
+            physicalKeyboardDoublePinyin.getValue()
+        }
     }
 
     inner class Voice : ManagedPreferenceCategory(R.string.setting_ime_input, sharedPreferences) {

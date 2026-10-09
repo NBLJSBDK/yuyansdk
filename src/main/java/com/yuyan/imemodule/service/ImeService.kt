@@ -13,6 +13,7 @@ import android.view.inputmethod.CursorAnchorInfo
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import androidx.lifecycle.Observer
+import com.yuyan.imemodule.application.CustomConstant
 import com.yuyan.imemodule.callback.IKeyboardView
 import com.yuyan.imemodule.candidate.CandidateView
 import com.yuyan.imemodule.data.emojicon.YuyanEmojiCompat
@@ -26,6 +27,7 @@ import com.yuyan.imemodule.keyboard.KeyboardManager
 import com.yuyan.imemodule.keyboard.container.ClipBoardContainer
 import com.yuyan.imemodule.manager.InputModeSwitcher
 import com.yuyan.imemodule.prefs.AppPrefs.Companion.getInstance
+import com.yuyan.imemodule.prefs.behavior.DoublePinyinSchemaMode
 import com.yuyan.imemodule.prefs.behavior.SkbMenuMode
 import com.yuyan.imemodule.singleton.EnvironmentSingleton
 import com.yuyan.imemodule.utils.KeyboardLoaderUtil
@@ -65,6 +67,12 @@ class ImeService : InputMethodService() {
         handleHardwareKeyboard()
         updateInputViewShown()
     }
+    private val physicalKeyboardDoublePinyinListener = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
+        syncPhysicalKeyboardSchema()
+    }
+    private val physicalKeyboardDoublePinyinSchemaListener = ManagedPreference.OnChangeListener<DoublePinyinSchemaMode> { _, _ ->
+        syncPhysicalKeyboardSchema()
+    }
     private val candidatesObserver = Observer<Any?> { _ ->
         if (::mInputView.isInitialized) mInputView.onCandidateChanged()
     }
@@ -73,6 +81,8 @@ class ImeService : InputMethodService() {
         super.onCreate()
         addOnChangedListener(onThemeChangeListener)
         getInstance().keyboardSetting.showVirtualKeyboardOnPhysicalKeyboard.registerOnChangeListener(showVirtualKeyboardOnPhysicalKeyboardListener)
+        getInstance().keyboardSetting.physicalKeyboardDoublePinyin.registerOnChangeListener(physicalKeyboardDoublePinyinListener)
+        getInstance().keyboardSetting.physicalKeyboardDoublePinyinSchema.registerOnChangeListener(physicalKeyboardDoublePinyinSchemaListener)
         handleHardwareKeyboard()
         DictDecoder.candidatesLiveData.observeForever(candidatesObserver)
     }
@@ -86,7 +96,7 @@ class ImeService : InputMethodService() {
     override fun onCreateCandidatesView(): View {
         if(!::candidateView.isInitialized)candidateView = CandidateView(baseContext, this)
         if(isHardwareKeyboard) mInputView = candidateView
-        currentInputConnection.requestCursorUpdates(InputConnection.CURSOR_UPDATE_MONITOR)
+        currentInputConnection?.requestCursorUpdates(InputConnection.CURSOR_UPDATE_MONITOR)
         return candidateView
     }
 
@@ -101,7 +111,8 @@ class ImeService : InputMethodService() {
             YuyanEmojiCompat.setEditorInfo(editorInfo)
             InputModeSwitcher.requestInputWithSkb(editorInfo)
         }
-        if(isHardwareKeyboard)updateCandidatesViewShown(true)
+        updateCandidatesViewShown(isHardwareKeyboard)
+        syncPhysicalKeyboardSchema()
     }
 
     override fun onStartInputView(editorInfo: EditorInfo, restarting: Boolean) {
@@ -113,6 +124,8 @@ class ImeService : InputMethodService() {
         super.onDestroy()
         DictDecoder.candidatesLiveData.removeObserver(candidatesObserver)
         getInstance().keyboardSetting.showVirtualKeyboardOnPhysicalKeyboard.unregisterOnChangeListener(showVirtualKeyboardOnPhysicalKeyboardListener)
+        getInstance().keyboardSetting.physicalKeyboardDoublePinyin.unregisterOnChangeListener(physicalKeyboardDoublePinyinListener)
+        getInstance().keyboardSetting.physicalKeyboardDoublePinyinSchema.unregisterOnChangeListener(physicalKeyboardDoublePinyinSchemaListener)
         removeOnChangedListener(onThemeChangeListener)
         getInstance().internal.clipboardUpdateContent.unregisterOnChangeListener(clipboardUpdateContentListener)
     }
@@ -122,6 +135,7 @@ class ImeService : InputMethodService() {
      */
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        val wasHardwareKeyboard = isHardwareKeyboard
         CoroutineScope(Dispatchers.Main).launch {
             delay(200) //延时，解决获取屏幕尺寸不准确。
             handleHardwareKeyboard()
@@ -130,6 +144,15 @@ class ImeService : InputMethodService() {
             KeyboardManager.instance.clearKeyboard()
             KeyboardManager.instance.switchKeyboard()
             if (::mInputView.isInitialized) mInputView.setConfiguration(newConfig)
+            if (wasHardwareKeyboard && !isHardwareKeyboard) {
+                // 硬件键盘断开：重新打开输入法，避免窗口停留在候选模式尺寸。
+                if (::mInputView.isInitialized) mInputView.requestLayout()
+                if (currentInputConnection != null) {
+                    requestHideSelf(0)
+                    delay(150)
+                    requestShowSelf(0)
+                }
+            }
         }
         onSystemDarkModeChange(newConfig.isDarkMode())
     }
@@ -149,12 +172,18 @@ class ImeService : InputMethodService() {
     }
 
     override fun setInputView(view: View) {
+        (view.parent as? ViewGroup)?.removeView(view)
         super.setInputView(view)
         val layoutParams = view.layoutParams
         if (layoutParams != null && layoutParams.height != ViewGroup.LayoutParams.MATCH_PARENT) {
             layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
             view.setLayoutParams(layoutParams)
         }
+    }
+
+    override fun setCandidatesView(view: View) {
+        (view.parent as? ViewGroup)?.removeView(view)
+        super.setCandidatesView(view)
     }
 
     override fun onEvaluateFullscreenMode(): Boolean = false //修复横屏之后输入框遮挡问题
@@ -337,7 +366,22 @@ class ImeService : InputMethodService() {
             else if (newConfig != null) hasHardwareKeyboard(newConfig)
             else hasHardwareKeyboard(resources.configuration)
         isHardwareKeyboard = hardwareKeyboard
+        updateCandidatesViewShown(hardwareKeyboard)
+        syncPhysicalKeyboardSchema()
         return hardwareKeyboard
+    }
+
+    private fun syncPhysicalKeyboardSchema() {
+        if (!InputModeSwitcher.isChinese) return
+        val keyboardSetting = getInstance().keyboardSetting
+        val schema = if (isHardwareKeyboard && keyboardSetting.physicalKeyboardDoublePinyin.getValue()) {
+            CustomConstant.SCHEMA_ZH_DOUBLE_FLYPY + keyboardSetting.physicalKeyboardDoublePinyinSchema.getValue()
+        } else {
+            getInstance().internal.pinyinModeRime.getValue()
+        }
+        if (InputDispatcher.getCurrentRimeSchema() != schema) {
+            InputDispatcher.initImeSchema(schema)
+        }
     }
 
     private fun hasHardwareKeyboard(config: Configuration): Boolean {
